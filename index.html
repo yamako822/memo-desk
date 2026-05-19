@@ -16,14 +16,32 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app">
+    <section id="loginScreen" class="login-screen" aria-labelledby="login-title">
+      <div class="login-card">
+        <p class="eyebrow">Memo Desk</p>
+        <h1 id="login-title">ログイン</h1>
+        <p class="login-note">学習用の簡易ログインです。名前を入力するとアプリを使えます。</p>
+        <form id="loginForm" class="login-form" novalidate>
+          <p class="form-error" id="loginError" hidden></p>
+          <label for="userName">名前</label>
+          <input id="userName" type="text" placeholder="例: やまだ" autocomplete="name" maxlength="32">
+          <button type="submit">はじめる</button>
+        </form>
+      </div>
+    </section>
+
+    <main id="appScreen" class="app" hidden>
       <section class="editor" aria-labelledby="editor-title">
         <div class="app-header">
           <div>
             <p class="eyebrow">Memo Desk</p>
             <h1 id="editor-title">メモを整理する</h1>
           </div>
-          <span class="count" id="memoCount">0件</span>
+          <div class="header-actions">
+            <span class="user-badge" id="userGreeting"></span>
+            <span class="count" id="memoCount">0件</span>
+            <button type="button" class="secondary" id="logoutButton">ログアウト</button>
+          </div>
         </div>
 
         <form id="memoForm" class="memo-form" novalidate>

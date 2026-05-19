@@ -1,4 +1,4 @@
-const CACHE = "memo-desk-v1";
+const CACHE = "memo-desk-v2";
 
 const ASSETS = [
   "./",

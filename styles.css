@@ -29,6 +29,63 @@ textarea {
   font: inherit;
 }
 
+label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.login-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  padding: 32px 28px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.login-card h1 {
+  margin-top: 4px;
+  font-size: 28px;
+}
+
+.login-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.user-badge {
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: #edf7f5;
+  color: #0b5f59;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .app {
   display: grid;
   grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
@@ -276,6 +333,16 @@ time {
 
   .library {
     min-height: auto;
+  }
+
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .toolbar {

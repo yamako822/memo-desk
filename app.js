@@ -1,4 +1,13 @@
-const STORAGE_KEY = "memo-desk-notes";
+const USER_KEY = "memo-desk-user";
+const LEGACY_STORAGE_KEY = "memo-desk-notes";
+
+const loginScreen = document.querySelector("#loginScreen");
+const appScreen = document.querySelector("#appScreen");
+const loginForm = document.querySelector("#loginForm");
+const userNameInput = document.querySelector("#userName");
+const loginError = document.querySelector("#loginError");
+const userGreeting = document.querySelector("#userGreeting");
+const logoutButton = document.querySelector("#logoutButton");
 
 const form = document.querySelector("#memoForm");
 const titleInput = document.querySelector("#memoTitle");
@@ -13,12 +22,27 @@ const saveButton = document.querySelector("#saveButton");
 const formError = document.querySelector("#formError");
 const template = document.querySelector("#memoTemplate");
 
-let memos = loadMemos();
+let currentUser = null;
+let memos = [];
 let editingId = null;
 let activeTag = "all";
 
+function getMemoStorageKey() {
+  return `memo-desk-notes-${currentUser}`;
+}
+
 function loadMemos() {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const key = getMemoStorageKey();
+  let saved = localStorage.getItem(key);
+
+  if (!saved) {
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      localStorage.setItem(key, legacy);
+      saved = legacy;
+    }
+  }
+
   if (!saved) return [];
 
   try {
@@ -30,10 +54,19 @@ function loadMemos() {
 
 function saveMemos() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(memos));
+    localStorage.setItem(getMemoStorageKey(), JSON.stringify(memos));
   } catch {
     throw new Error("保存できません。ブラウザの設定でストレージがブロックされていないか確認してください。");
   }
+}
+
+function showLoginError(message) {
+  loginError.textContent = message;
+  loginError.hidden = !message;
+}
+
+function clearLoginError() {
+  showLoginError("");
 }
 
 function showFormError(message) {
@@ -43,6 +76,37 @@ function showFormError(message) {
 
 function clearFormError() {
   showFormError("");
+}
+
+function showLogin() {
+  loginScreen.hidden = false;
+  appScreen.hidden = true;
+  loginForm.reset();
+  clearLoginError();
+  userNameInput.focus();
+}
+
+function enterApp(name) {
+  currentUser = name;
+  localStorage.setItem(USER_KEY, name);
+  loginScreen.hidden = true;
+  appScreen.hidden = false;
+  userGreeting.textContent = `${name}さん`;
+  memos = loadMemos();
+  editingId = null;
+  activeTag = "all";
+  searchInput.value = "";
+  resetForm();
+  render();
+}
+
+function logout() {
+  localStorage.removeItem(USER_KEY);
+  currentUser = null;
+  memos = [];
+  editingId = null;
+  activeTag = "all";
+  showLogin();
 }
 
 function parseTags(text) {
@@ -156,7 +220,7 @@ function resetForm() {
   editingId = null;
   saveButton.textContent = "保存する";
   clearFormError();
-  titleInput.focus();
+  if (!appScreen.hidden) titleInput.focus();
 }
 
 function startEditing(id) {
@@ -183,6 +247,23 @@ function deleteMemo(id) {
   saveMemos();
   render();
 }
+
+loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  clearLoginError();
+
+  const name = userNameInput.value.trim();
+  if (!name) {
+    showLoginError("名前を入力してください。");
+    userNameInput.focus();
+    return;
+  }
+
+  enterApp(name);
+});
+
+userNameInput.addEventListener("input", clearLoginError);
+logoutButton.addEventListener("click", logout);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -234,4 +315,9 @@ form.addEventListener("submit", (event) => {
 searchInput.addEventListener("input", renderMemos);
 clearButton.addEventListener("click", resetForm);
 
-render();
+const savedUser = localStorage.getItem(USER_KEY);
+if (savedUser) {
+  enterApp(savedUser);
+} else {
+  showLogin();
+}
