@@ -1,10 +1,19 @@
-const USER_KEY = "memo-desk-user";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
+
 const LEGACY_STORAGE_KEY = "memo-desk-notes";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
-const loginForm = document.querySelector("#loginForm");
-const userNameInput = document.querySelector("#userName");
+const googleLoginButton = document.querySelector("#googleLoginButton");
+const loginHint = document.querySelector("#loginHint");
 const loginError = document.querySelector("#loginError");
 const userGreeting = document.querySelector("#userGreeting");
 const logoutButton = document.querySelector("#logoutButton");
@@ -22,13 +31,14 @@ const saveButton = document.querySelector("#saveButton");
 const formError = document.querySelector("#formError");
 const template = document.querySelector("#memoTemplate");
 
-let currentUser = null;
+let auth = null;
+let currentUserId = null;
 let memos = [];
 let editingId = null;
 let activeTag = "all";
 
 function getMemoStorageKey() {
-  return `memo-desk-notes-${currentUser}`;
+  return `memo-desk-notes-${currentUserId}`;
 }
 
 function loadMemos() {
@@ -78,20 +88,28 @@ function clearFormError() {
   showFormError("");
 }
 
+function setLoginLoading(isLoading) {
+  googleLoginButton.disabled = isLoading;
+  loginHint.hidden = !isLoading;
+}
+
 function showLogin() {
   loginScreen.hidden = false;
   appScreen.hidden = true;
-  loginForm.reset();
   clearLoginError();
-  userNameInput.focus();
+  setLoginLoading(false);
+  googleLoginButton.focus();
 }
 
-function enterApp(name) {
-  currentUser = name;
-  localStorage.setItem(USER_KEY, name);
+function getDisplayName(user) {
+  return user.displayName || user.email?.split("@")[0] || "ユーザー";
+}
+
+function enterApp(user) {
+  currentUserId = user.uid;
   loginScreen.hidden = true;
   appScreen.hidden = false;
-  userGreeting.textContent = `${name}さん`;
+  userGreeting.textContent = `${getDisplayName(user)}さん`;
   memos = loadMemos();
   editingId = null;
   activeTag = "all";
@@ -100,13 +118,47 @@ function enterApp(name) {
   render();
 }
 
-function logout() {
-  localStorage.removeItem(USER_KEY);
-  currentUser = null;
+async function logout() {
+  if (auth) await signOut(auth);
+  currentUserId = null;
   memos = [];
   editingId = null;
   activeTag = "all";
   showLogin();
+}
+
+function parseAuthError(error) {
+  const code = error?.code ?? "";
+
+  if (code === "auth/popup-blocked") {
+    return "ポップアップがブロックされました。ブラウザでこのサイトのポップアップを許可してください。";
+  }
+  if (code === "auth/unauthorized-domain") {
+    return "このドメインは Firebase で許可されていません。FIREBASE_SETUP.md の「承認済みドメイン」を確認してください。";
+  }
+  if (code === "auth/popup-closed-by-user") {
+    return "ログインがキャンセルされました。もう一度お試しください。";
+  }
+
+  return error?.message || "ログインに失敗しました。";
+}
+
+async function loginWithGoogle() {
+  if (!auth) {
+    showLoginError("Firebase の設定がまだ完了していません。firebase-config.js を編集してください。");
+    return;
+  }
+
+  clearLoginError();
+  setLoginLoading(true);
+
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    showLoginError(parseAuthError(error));
+    setLoginLoading(false);
+  }
 }
 
 function parseTags(text) {
@@ -248,21 +300,32 @@ function deleteMemo(id) {
   render();
 }
 
-loginForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  clearLoginError();
-
-  const name = userNameInput.value.trim();
-  if (!name) {
-    showLoginError("名前を入力してください。");
-    userNameInput.focus();
+function initFirebase() {
+  if (!isFirebaseConfigured()) {
+    showLoginError(
+      "firebase-config.js が未設定です。FIREBASE_SETUP.md の手順に従って YOUR_... を置き換えてください。",
+    );
+    googleLoginButton.disabled = true;
+    showLogin();
     return;
   }
 
-  enterApp(name);
-});
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
 
-userNameInput.addEventListener("input", clearLoginError);
+  onAuthStateChanged(auth, (user) => {
+    setLoginLoading(false);
+
+    if (user) {
+      enterApp(user);
+    } else {
+      currentUserId = null;
+      showLogin();
+    }
+  });
+}
+
+googleLoginButton.addEventListener("click", loginWithGoogle);
 logoutButton.addEventListener("click", logout);
 
 form.addEventListener("submit", (event) => {
@@ -315,9 +378,4 @@ form.addEventListener("submit", (event) => {
 searchInput.addEventListener("input", renderMemos);
 clearButton.addEventListener("click", resetForm);
 
-const savedUser = localStorage.getItem(USER_KEY);
-if (savedUser) {
-  enterApp(savedUser);
-} else {
-  showLogin();
-}
+initFirebase();

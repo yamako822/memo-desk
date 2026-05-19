@@ -8,6 +8,11 @@
 
 PWA としてインストールする場合は、上記 URL を Edge / Chrome で開き、「アプリのインストール」から追加してください。
 
+## Google ログイン（Firebase）
+
+Google アカウントでログインするには、Firebase の初期設定が必要です。  
+**初心者向けの手順書:** [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
+
 ## GitHub Pages の設定（初回のみ）
 
 1. リポジトリを開く: https://github.com/yamako822/memo-desk/settings/pages  

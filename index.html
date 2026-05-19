@@ -20,13 +20,14 @@
       <div class="login-card">
         <p class="eyebrow">Memo Desk</p>
         <h1 id="login-title">ログイン</h1>
-        <p class="login-note">学習用の簡易ログインです。名前を入力するとアプリを使えます。</p>
-        <form id="loginForm" class="login-form" novalidate>
+        <p class="login-note">Google アカウントでログインしてメモを使います。初回は Firebase の設定が必要です（<code>FIREBASE_SETUP.md</code> 参照）。</p>
+        <div class="login-form">
           <p class="form-error" id="loginError" hidden></p>
-          <label for="userName">名前</label>
-          <input id="userName" type="text" placeholder="例: やまだ" autocomplete="name" maxlength="32">
-          <button type="submit">はじめる</button>
-        </form>
+          <button type="button" class="google-login-button" id="googleLoginButton">
+            Google でログイン
+          </button>
+          <p class="login-hint" id="loginHint" hidden>ログイン処理中…</p>
+        </div>
       </div>
     </section>
 
@@ -82,7 +83,7 @@
       </article>
     </template>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
     <script src="pwa.js"></script>
   </body>
 </html>

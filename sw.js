@@ -1,4 +1,4 @@
-const CACHE = "memo-desk-v2";
+const CACHE = "memo-desk-v3";
 
 const ASSETS = [
   "./",
@@ -6,6 +6,7 @@ const ASSETS = [
   "./styles.css",
   "./app.js",
   "./pwa.js",
+  "./firebase-config.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",
