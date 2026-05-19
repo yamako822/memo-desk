@@ -1,0 +1,279 @@
+:root {
+  color-scheme: light;
+  --bg: #f7f5f0;
+  --panel: #ffffff;
+  --text: #202124;
+  --muted: #67706f;
+  --line: #dedbd2;
+  --accent: #0f766e;
+  --accent-dark: #0b5f59;
+  --danger: #b42318;
+  --shadow: 0 18px 45px rgba(31, 41, 55, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  gap: 24px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 32px auto;
+}
+
+.editor,
+.library {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.editor {
+  align-self: start;
+  padding: 24px;
+}
+
+.library {
+  min-height: calc(100vh - 64px);
+  padding: 22px;
+}
+
+.app-header,
+.toolbar,
+.memo-card-header,
+.form-actions,
+.card-actions {
+  display: flex;
+  align-items: center;
+}
+
+.app-header,
+.toolbar {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 30px;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 22px;
+}
+
+.count {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.memo-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 13px;
+  background: #fff;
+  color: var(--text);
+}
+
+textarea {
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+button:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.24);
+  border-color: var(--accent);
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 16px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  background: var(--accent-dark);
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+}
+
+.secondary:hover {
+  background: #f1f5f4;
+}
+
+.danger {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #f2b8b5;
+}
+
+.danger:hover {
+  background: #fff1f0;
+}
+
+.form-actions,
+.card-actions {
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.toolbar input {
+  max-width: 260px;
+}
+
+.tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0;
+  min-height: 34px;
+}
+
+.tag-filter button {
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tag-filter button.active {
+  background: #d7f3ee;
+  border-color: #7ac8bd;
+  color: #0b5f59;
+}
+
+.memo-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.memo-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #fffefb;
+}
+
+.memo-card-header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.memo-card h3 {
+  min-width: 0;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memo-body {
+  color: #39413f;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.memo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memo-tags span {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #edf7f5;
+  color: #0b5f59;
+  font-size: 12px;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  padding: 44px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 780px) {
+  .app {
+    grid-template-columns: 1fr;
+    margin: 16px auto;
+  }
+
+  .library {
+    min-height: auto;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar input {
+    max-width: none;
+  }
+}
