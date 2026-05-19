@@ -109,6 +109,16 @@ h2 {
   margin-top: 24px;
 }
 
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #f2b8b5;
+  background: #fff1f0;
+  color: var(--danger);
+  font-size: 14px;
+}
+
 input,
 textarea {
   width: 100%;

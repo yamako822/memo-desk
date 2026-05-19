@@ -10,6 +10,7 @@ const memoCount = document.querySelector("#memoCount");
 const tagFilter = document.querySelector("#tagFilter");
 const clearButton = document.querySelector("#clearButton");
 const saveButton = document.querySelector("#saveButton");
+const formError = document.querySelector("#formError");
 const template = document.querySelector("#memoTemplate");
 
 let memos = loadMemos();
@@ -28,7 +29,20 @@ function loadMemos() {
 }
 
 function saveMemos() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(memos));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(memos));
+  } catch {
+    throw new Error("保存できません。ブラウザの設定でストレージがブロックされていないか確認してください。");
+  }
+}
+
+function showFormError(message) {
+  formError.textContent = message;
+  formError.hidden = !message;
+}
+
+function clearFormError() {
+  showFormError("");
 }
 
 function parseTags(text) {
@@ -141,6 +155,7 @@ function resetForm() {
   form.reset();
   editingId = null;
   saveButton.textContent = "保存する";
+  clearFormError();
   titleInput.focus();
 }
 
@@ -171,25 +186,49 @@ function deleteMemo(id) {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  clearFormError();
+
+  const title = titleInput.value.trim();
+  const body = bodyInput.value.trim();
+
+  if (!title) {
+    showFormError("タイトルを入力してください。");
+    titleInput.focus();
+    return;
+  }
+
+  if (!body) {
+    showFormError("本文を入力してください。");
+    bodyInput.focus();
+    return;
+  }
 
   const now = new Date().toISOString();
   const memo = {
     id: editingId ?? crypto.randomUUID(),
-    title: titleInput.value.trim(),
-    body: bodyInput.value.trim(),
+    title,
+    body,
     tags: parseTags(tagsInput.value),
     updatedAt: now,
   };
 
-  if (editingId) {
-    memos = memos.map((item) => (item.id === editingId ? memo : item));
-  } else {
-    memos = [memo, ...memos];
-  }
+  try {
+    if (editingId) {
+      memos = memos.map((item) => (item.id === editingId ? memo : item));
+    } else {
+      memos = [memo, ...memos];
+    }
 
-  saveMemos();
-  resetForm();
-  render();
+    saveMemos();
+    resetForm();
+    render();
+  } catch (error) {
+    showFormError(error.message || "保存に失敗しました。");
+  }
+});
+
+[titleInput, bodyInput].forEach((input) => {
+  input.addEventListener("input", clearFormError);
 });
 
 searchInput.addEventListener("input", renderMemos);

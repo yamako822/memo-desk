@@ -26,9 +26,10 @@
           <span class="count" id="memoCount">0件</span>
         </div>
 
-        <form id="memoForm" class="memo-form">
-          <input id="memoTitle" type="text" placeholder="タイトル" autocomplete="off" required>
-          <textarea id="memoBody" rows="8" placeholder="本文を書いてください" required></textarea>
+        <form id="memoForm" class="memo-form" novalidate>
+          <p class="form-error" id="formError" hidden></p>
+          <input id="memoTitle" type="text" placeholder="タイトル" autocomplete="off" aria-required="true">
+          <textarea id="memoBody" rows="8" placeholder="本文を書いてください" aria-required="true"></textarea>
           <input id="memoTags" type="text" placeholder="タグ（例: 勉強, アイデア）" autocomplete="off">
           <div class="form-actions">
             <button type="button" class="secondary" id="clearButton">クリア</button>

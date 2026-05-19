@@ -10,13 +10,20 @@ PWA としてインストールする場合は、上記 URL を Edge / Chrome �
 
 ## GitHub Pages の設定（初回のみ）
 
-1. リポジトリを開く: https://github.com/yamako822/memo-desk  
-2. **Settings** → 左の **Pages**  
-3. **Build and deployment** の **Source** を **Deploy from a branch** にする  
-4. **Branch** を `main`、フォルダを **/ (root)** にして **Save**  
-5. 画面上部に緑色の URL が出るまで 1〜3 分待つ  
+1. リポジトリを開く: https://github.com/yamako822/memo-desk/settings/pages  
+2. **Build and deployment** の **Source** で **Deploy from a branch** を選ぶ  
+3. その直下に出る **Branch** の行で  
+   - 1つ目: `main`  
+   - 2つ目: `/ (root)`  
+   - 右端の **Save**（この行の横にある小さなボタン）を押す  
+4. ページ上部に緑色の **Your site is live at …** が出るまで 1〜3 分待つ  
 
-> **注意:** Source を **GitHub Actions** のままにすると、サイトが公開されません（このプロジェクトはブランチ公開方式です）。
+> **Save が押せない・グレーのとき**  
+> - **Branch を `main` に選んでから** Save を押す（選ぶ前は押せません）  
+> - リポジトリが **Private（非公開）** だと無料プランでは Pages が使えず Save できないことがあります → **Settings → General** で **Public** に変更  
+> - すでに `main` / `/ (root)` なら変更不要。緑の URL が出ていれば OK  
+
+> **注意:** Source を **GitHub Actions** のままにしないでください。
 
 ### うまくいかないとき
 
