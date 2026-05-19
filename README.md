@@ -4,20 +4,33 @@
 
 ## 公開 URL
 
-GitHub Pages 有効化後:
-
 **https://yamako822.github.io/memo-desk/**
 
 PWA としてインストールする場合は、上記 URL を Edge / Chrome で開き、「アプリのインストール」から追加してください。
 
-## GitHub への反映手順
+## GitHub Pages の設定（初回のみ）
 
-1. [GitHub Desktop](https://desktop.github.com/) でこのフォルダ（`memo-desk`）を開く  
-   またはターミナルでこのディレクトリに移動する
-2. 変更をコミット（例: `Add memo app and PWA support`）
-3. **Push origin** で `https://github.com/yamako822/memo-desk` に送信
-4. GitHub のリポジトリ → **Settings** → **Pages** → **Build and deployment** で **Source** を **GitHub Actions** に設定
-5. 数分後、上記 URL でアクセスできることを確認
+1. リポジトリを開く: https://github.com/yamako822/memo-desk  
+2. **Settings** → 左の **Pages**  
+3. **Build and deployment** の **Source** を **Deploy from a branch** にする  
+4. **Branch** を `main`、フォルダを **/ (root)** にして **Save**  
+5. 画面上部に緑色の URL が出るまで 1〜3 分待つ  
+
+> **注意:** Source を **GitHub Actions** のままにすると、サイトが公開されません（このプロジェクトはブランチ公開方式です）。
+
+### うまくいかないとき
+
+| 症状 | 対処 |
+|------|------|
+| 404 のまま | Source が **Deploy from a branch** か確認。`main` / **/ (root)** か確認 |
+| ずっと待っている | **Actions** タブは見なくてよい。Settings → Pages の緑の URL を確認 |
+| 非公開リポジトリ | 無料プランでは Pages が使えない場合あり。**Public** に変更 |
+
+## 変更を反映する
+
+1. ファイルを編集  
+2. コミット → `main` に push  
+3. 1〜2 分後に URL を再読み込み  
 
 ## ローカルで試す
 
