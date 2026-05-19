@@ -2,12 +2,13 @@
 // 詳しくは FIREBASE_SETUP.md を読んでください
 
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDPh8kYoksbFtQEsfm4vnir-8Qg8yNHTf8",
+  authDomain: "memo-5ffec.firebaseapp.com",
+  projectId: "memo-5ffec",
+  storageBucket: "memo-5ffec.firebasestorage.app",
+  messagingSenderId: "357043391177",
+  appId: "1:357043391177:web:1024b9acec942d1428db18",
+  measurementId: "G-4KG4NWGMGW"
 };
 
 export function isFirebaseConfigured() {
