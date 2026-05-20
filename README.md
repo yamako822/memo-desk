@@ -8,10 +8,13 @@
 
 PWA としてインストールする場合は、上記 URL を Edge / Chrome で開き、「アプリのインストール」から追加してください。
 
-## Google ログイン（Firebase）
+## ログインとメモの同期（Firebase）
 
-Google アカウントでログインするには、Firebase の初期設定が必要です。  
-**初心者向けの手順書:** [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
+- **Google** または **メール・パスワード** でログイン
+- メモは **Firestore** に保存（同じアカウントなら別 PC からも同じメモ）
+- アカウントごとにメモは分離（他人のメモは見えません）
+
+**設定手順:** [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)（Firestore の作成とセキュリティルールが必要です）
 
 ## GitHub Pages の設定（初回のみ）
 

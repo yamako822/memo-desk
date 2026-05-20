@@ -114,6 +114,64 @@ label {
   cursor: not-allowed;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.email-auth {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.auth-mode-toggle button {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.auth-mode-toggle button.active {
+  background: #d7f3ee;
+  border-color: #7ac8bd;
+  color: #0b5f59;
+}
+
+#emailAuthForm {
+  display: grid;
+  gap: 10px;
+}
+
+.app-loading {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #edf7f5;
+  color: #0b5f59;
+  font-size: 14px;
+  text-align: center;
+}
+
 .header-actions {
   display: flex;
   flex-wrap: wrap;

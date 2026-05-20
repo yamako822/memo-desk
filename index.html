@@ -20,18 +20,38 @@
       <div class="login-card">
         <p class="eyebrow">Memo Desk</p>
         <h1 id="login-title">ログイン</h1>
-        <p class="login-note">Google アカウントでログインしてメモを使います。初回は Firebase の設定が必要です（<code>FIREBASE_SETUP.md</code> 参照）。</p>
+        <p class="login-note">アカウントごとにメモが分かれます。別のPCから同じアカウントでログインすると、同じメモが表示されます。</p>
         <div class="login-form">
           <p class="form-error" id="loginError" hidden></p>
+
           <button type="button" class="google-login-button" id="googleLoginButton">
             Google でログイン
           </button>
-          <p class="login-hint" id="loginHint" hidden>ログイン処理中…</p>
+
+          <p class="auth-divider" aria-hidden="true"><span>または</span></p>
+
+          <div class="email-auth">
+            <div class="auth-mode-toggle" role="tablist" aria-label="メール認証のモード">
+              <button type="button" class="active" id="emailSignInTab" role="tab" aria-selected="true">ログイン</button>
+              <button type="button" id="emailSignUpTab" role="tab" aria-selected="false">新規登録</button>
+            </div>
+            <form id="emailAuthForm" novalidate>
+              <label for="emailInput">メールアドレス</label>
+              <input id="emailInput" type="email" autocomplete="email" placeholder="example@mail.com" required>
+              <label for="passwordInput">パスワード（6文字以上）</label>
+              <input id="passwordInput" type="password" autocomplete="current-password" minlength="6" placeholder="******" required>
+              <button type="submit" id="emailSubmitButton">メールでログイン</button>
+            </form>
+          </div>
+
+          <p class="login-hint" id="loginHint" hidden>処理中…</p>
         </div>
       </div>
     </section>
 
     <main id="appScreen" class="app" hidden>
+      <p class="app-loading" id="appLoading" hidden>メモを読み込み中…</p>
+
       <section class="editor" aria-labelledby="editor-title">
         <div class="app-header">
           <div>

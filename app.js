@@ -1,18 +1,39 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import {
+  createUserWithEmailAndPassword,
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+  setDoc,
+  writeBatch,
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
 
 const LEGACY_STORAGE_KEY = "memo-desk-notes";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
+const appLoading = document.querySelector("#appLoading");
 const googleLoginButton = document.querySelector("#googleLoginButton");
+const emailAuthForm = document.querySelector("#emailAuthForm");
+const emailInput = document.querySelector("#emailInput");
+const passwordInput = document.querySelector("#passwordInput");
+const emailSubmitButton = document.querySelector("#emailSubmitButton");
+const emailSignInTab = document.querySelector("#emailSignInTab");
+const emailSignUpTab = document.querySelector("#emailSignUpTab");
 const loginHint = document.querySelector("#loginHint");
 const loginError = document.querySelector("#loginError");
 const userGreeting = document.querySelector("#userGreeting");
@@ -32,42 +53,20 @@ const formError = document.querySelector("#formError");
 const template = document.querySelector("#memoTemplate");
 
 let auth = null;
-let currentUserId = null;
+let db = null;
+let currentUser = null;
+let unsubscribeMemos = null;
 let memos = [];
 let editingId = null;
 let activeTag = "all";
+let emailAuthMode = "signin";
 
-function getMemoStorageKey() {
-  return `memo-desk-notes-${currentUserId}`;
+function memosCollectionRef(uid) {
+  return collection(db, "users", uid, "memos");
 }
 
-function loadMemos() {
-  const key = getMemoStorageKey();
-  let saved = localStorage.getItem(key);
-
-  if (!saved) {
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      localStorage.setItem(key, legacy);
-      saved = legacy;
-    }
-  }
-
-  if (!saved) return [];
-
-  try {
-    return JSON.parse(saved);
-  } catch {
-    return [];
-  }
-}
-
-function saveMemos() {
-  try {
-    localStorage.setItem(getMemoStorageKey(), JSON.stringify(memos));
-  } catch {
-    throw new Error("保存できません。ブラウザの設定でストレージがブロックされていないか確認してください。");
-  }
+function memoDocRef(uid, memoId) {
+  return doc(db, "users", uid, "memos", memoId);
 }
 
 function showLoginError(message) {
@@ -88,16 +87,27 @@ function clearFormError() {
   showFormError("");
 }
 
-function setLoginLoading(isLoading) {
+function setAuthLoading(isLoading) {
   googleLoginButton.disabled = isLoading;
+  emailSubmitButton.disabled = isLoading;
+  emailSignInTab.disabled = isLoading;
+  emailSignUpTab.disabled = isLoading;
   loginHint.hidden = !isLoading;
 }
 
+function setAppLoading(isLoading) {
+  appLoading.hidden = !isLoading;
+}
+
 function showLogin() {
+  stopMemoSubscription();
+  currentUser = null;
+  memos = [];
   loginScreen.hidden = false;
   appScreen.hidden = true;
   clearLoginError();
-  setLoginLoading(false);
+  setAuthLoading(false);
+  setAppLoading(false);
   googleLoginButton.focus();
 }
 
@@ -105,22 +115,97 @@ function getDisplayName(user) {
   return user.displayName || user.email?.split("@")[0] || "ユーザー";
 }
 
-function enterApp(user) {
-  currentUserId = user.uid;
+function stopMemoSubscription() {
+  if (unsubscribeMemos) {
+    unsubscribeMemos();
+    unsubscribeMemos = null;
+  }
+}
+
+function startMemoSubscription(user) {
+  stopMemoSubscription();
+
+  const q = query(memosCollectionRef(user.uid), orderBy("updatedAt", "desc"));
+
+  unsubscribeMemos = onSnapshot(
+    q,
+    (snapshot) => {
+      memos = snapshot.docs.map((document) => ({
+        id: document.id,
+        ...document.data(),
+      }));
+      setAppLoading(false);
+      render();
+    },
+    (error) => {
+      console.error(error);
+      setAppLoading(false);
+      showFormError("メモの読み込みに失敗しました。Firestore の設定を確認してください。");
+    },
+  );
+}
+
+async function migrateLocalMemosIfNeeded(uid) {
+  const keys = [LEGACY_STORAGE_KEY, `memo-desk-notes-${uid}`];
+  let localMemos = [];
+
+  for (const key of keys) {
+    const saved = localStorage.getItem(key);
+    if (!saved) continue;
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        localMemos = parsed;
+        break;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (localMemos.length === 0) return;
+
+  const existing = await getDocs(memosCollectionRef(uid));
+  if (!existing.empty) return;
+
+  const batch = writeBatch(db);
+  localMemos.forEach((memo) => {
+    const id = memo.id || crypto.randomUUID();
+    batch.set(memoDocRef(uid, id), {
+      title: memo.title ?? "",
+      body: memo.body ?? "",
+      tags: Array.isArray(memo.tags) ? memo.tags : [],
+      updatedAt: memo.updatedAt ?? new Date().toISOString(),
+    });
+  });
+  await batch.commit();
+}
+
+async function enterApp(user) {
+  currentUser = user;
   loginScreen.hidden = true;
   appScreen.hidden = false;
   userGreeting.textContent = `${getDisplayName(user)}さん`;
-  memos = loadMemos();
   editingId = null;
   activeTag = "all";
   searchInput.value = "";
+  setAppLoading(true);
+  clearFormError();
   resetForm();
-  render();
+
+  try {
+    await migrateLocalMemosIfNeeded(user.uid);
+    startMemoSubscription(user);
+  } catch (error) {
+    console.error(error);
+    setAppLoading(false);
+    showFormError("メモの準備に失敗しました。");
+  }
 }
 
 async function logout() {
+  stopMemoSubscription();
   if (auth) await signOut(auth);
-  currentUserId = null;
   memos = [];
   editingId = null;
   activeTag = "all";
@@ -129,36 +214,77 @@ async function logout() {
 
 function parseAuthError(error) {
   const code = error?.code ?? "";
+  const messages = {
+    "auth/popup-blocked": "ポップアップがブロックされました。ブラウザで許可してください。",
+    "auth/unauthorized-domain": "このドメインは Firebase で許可されていません。",
+    "auth/popup-closed-by-user": "ログインがキャンセルされました。",
+    "auth/email-already-in-use": "このメールアドレスはすでに登録されています。ログインしてください。",
+    "auth/invalid-email": "メールアドレスの形式が正しくありません。",
+    "auth/weak-password": "パスワードは6文字以上にしてください。",
+    "auth/user-not-found": "アカウントが見つかりません。新規登録してください。",
+    "auth/wrong-password": "パスワードが違います。",
+    "auth/invalid-credential": "メールアドレスまたはパスワードが正しくありません。",
+    "auth/too-many-requests": "試行回数が多すぎます。しばらく待ってから再度お試しください。",
+  };
 
-  if (code === "auth/popup-blocked") {
-    return "ポップアップがブロックされました。ブラウザでこのサイトのポップアップを許可してください。";
-  }
-  if (code === "auth/unauthorized-domain") {
-    return "このドメインは Firebase で許可されていません。FIREBASE_SETUP.md の「承認済みドメイン」を確認してください。";
-  }
-  if (code === "auth/popup-closed-by-user") {
-    return "ログインがキャンセルされました。もう一度お試しください。";
-  }
-
-  return error?.message || "ログインに失敗しました。";
+  return messages[code] || error?.message || "ログインに失敗しました。";
 }
 
 async function loginWithGoogle() {
-  if (!auth) {
-    showLoginError("Firebase の設定がまだ完了していません。firebase-config.js を編集してください。");
+  if (!auth) return;
+
+  clearLoginError();
+  setAuthLoading(true);
+
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (error) {
+    showLoginError(parseAuthError(error));
+    setAuthLoading(false);
+  }
+}
+
+async function loginWithEmail(event) {
+  event.preventDefault();
+  if (!auth) return;
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email) {
+    showLoginError("メールアドレスを入力してください。");
+    return;
+  }
+
+  if (password.length < 6) {
+    showLoginError("パスワードは6文字以上にしてください。");
     return;
   }
 
   clearLoginError();
-  setLoginLoading(true);
+  setAuthLoading(true);
 
   try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    if (emailAuthMode === "signup") {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
   } catch (error) {
     showLoginError(parseAuthError(error));
-    setLoginLoading(false);
+    setAuthLoading(false);
   }
+}
+
+function setEmailAuthMode(mode) {
+  emailAuthMode = mode;
+  const isSignIn = mode === "signin";
+  emailSignInTab.classList.toggle("active", isSignIn);
+  emailSignUpTab.classList.toggle("active", !isSignIn);
+  emailSignInTab.setAttribute("aria-selected", String(isSignIn));
+  emailSignUpTab.setAttribute("aria-selected", String(!isSignIn));
+  emailSubmitButton.textContent = isSignIn ? "メールでログイン" : "アカウントを作成";
+  passwordInput.autocomplete = isSignIn ? "current-password" : "new-password";
 }
 
 function parseTags(text) {
@@ -229,7 +355,7 @@ function renderMemos() {
   if (filteredMemos.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "表示できるメモがありません";
+    empty.textContent = appLoading.hidden === false ? "読み込み中…" : "表示できるメモがありません";
     memoList.append(empty);
     return;
   }
@@ -272,7 +398,7 @@ function resetForm() {
   editingId = null;
   saveButton.textContent = "保存する";
   clearFormError();
-  if (!appScreen.hidden) titleInput.focus();
+  if (!appScreen.hidden && appLoading.hidden) titleInput.focus();
 }
 
 function startEditing(id) {
@@ -287,50 +413,66 @@ function startEditing(id) {
   titleInput.focus();
 }
 
-function deleteMemo(id) {
+async function deleteMemo(id) {
   const memo = memos.find((item) => item.id === id);
-  if (!memo) return;
+  if (!memo || !currentUser) return;
 
   const ok = confirm(`「${memo.title}」を削除しますか？`);
   if (!ok) return;
 
-  memos = memos.filter((item) => item.id !== id);
-  if (editingId === id) resetForm();
-  saveMemos();
-  render();
+  try {
+    await deleteDoc(memoDocRef(currentUser.uid, id));
+    if (editingId === id) resetForm();
+  } catch {
+    showFormError("削除に失敗しました。");
+  }
+}
+
+async function saveMemoToFirestore(memo) {
+  if (!currentUser) return;
+  await setDoc(memoDocRef(currentUser.uid, memo.id), {
+    title: memo.title,
+    body: memo.body,
+    tags: memo.tags,
+    updatedAt: memo.updatedAt,
+  });
 }
 
 function initFirebase() {
   if (!isFirebaseConfigured()) {
-    showLoginError(
-      "firebase-config.js が未設定です。FIREBASE_SETUP.md の手順に従って YOUR_... を置き換えてください。",
-    );
+    showLoginError("firebase-config.js が未設定です。FIREBASE_SETUP.md を参照してください。");
     googleLoginButton.disabled = true;
+    emailSubmitButton.disabled = true;
     showLogin();
     return;
   }
 
   const app = initializeApp(firebaseConfig);
   auth = getAuth(app);
+  db = getFirestore(app);
 
   onAuthStateChanged(auth, (user) => {
-    setLoginLoading(false);
+    setAuthLoading(false);
 
     if (user) {
       enterApp(user);
     } else {
-      currentUserId = null;
       showLogin();
     }
   });
 }
 
 googleLoginButton.addEventListener("click", loginWithGoogle);
+emailAuthForm.addEventListener("submit", loginWithEmail);
+emailSignInTab.addEventListener("click", () => setEmailAuthMode("signin"));
+emailSignUpTab.addEventListener("click", () => setEmailAuthMode("signup"));
 logoutButton.addEventListener("click", logout);
 
-form.addEventListener("submit", (event) => {
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearFormError();
+
+  if (!currentUser) return;
 
   const title = titleInput.value.trim();
   const body = bodyInput.value.trim();
@@ -347,27 +489,23 @@ form.addEventListener("submit", (event) => {
     return;
   }
 
-  const now = new Date().toISOString();
   const memo = {
     id: editingId ?? crypto.randomUUID(),
     title,
     body,
     tags: parseTags(tagsInput.value),
-    updatedAt: now,
+    updatedAt: new Date().toISOString(),
   };
 
-  try {
-    if (editingId) {
-      memos = memos.map((item) => (item.id === editingId ? memo : item));
-    } else {
-      memos = [memo, ...memos];
-    }
+  saveButton.disabled = true;
 
-    saveMemos();
+  try {
+    await saveMemoToFirestore(memo);
     resetForm();
-    render();
-  } catch (error) {
-    showFormError(error.message || "保存に失敗しました。");
+  } catch {
+    showFormError("保存に失敗しました。Firestore の設定を確認してください。");
+  } finally {
+    saveButton.disabled = false;
   }
 });
 
@@ -375,7 +513,12 @@ form.addEventListener("submit", (event) => {
   input.addEventListener("input", clearFormError);
 });
 
+[emailInput, passwordInput].forEach((input) => {
+  input.addEventListener("input", clearLoginError);
+});
+
 searchInput.addEventListener("input", renderMemos);
 clearButton.addEventListener("click", resetForm);
 
+setEmailAuthMode("signin");
 initFirebase();
