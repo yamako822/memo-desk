@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0f766e">
-    <meta name="description" content="メモを整理する">
+    <meta name="description" content="Memo Desk にログイン">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
-    <title>Memo Desk</title>
+    <title>Memo Desk | Login</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -44,65 +44,45 @@
             </form>
           </div>
 
+          <p class="auth-divider" aria-hidden="true"><span>このPCだけ</span></p>
+
+          <button type="button" class="secondary local-mode-button" id="localModeButton">
+            ログインせずに使う
+          </button>
+          <p class="login-note local-mode-note">このモードのメモはこのブラウザ内だけに保存され、別PCとは同期されません。</p>
+
           <p class="login-hint" id="loginHint" hidden>処理中…</p>
         </div>
       </div>
     </section>
 
-    <main id="appScreen" class="app" hidden>
-      <p class="app-loading" id="appLoading" hidden>メモを読み込み中…</p>
+    <script>
+      if (window.location.protocol === "file:") {
+        window.addEventListener("DOMContentLoaded", () => {
+          const message = "この画面はファイルを直接開くとログインできません。公開URLまたは http://localhost 経由で開いてください。";
+          const loginError = document.querySelector("#loginError");
+          const googleLoginButton = document.querySelector("#googleLoginButton");
+          const emailAuthForm = document.querySelector("#emailAuthForm");
+          const localModeButton = document.querySelector("#localModeButton");
 
-      <section class="editor" aria-labelledby="editor-title">
-        <div class="app-header">
-          <div>
-            <p class="eyebrow">Memo Desk</p>
-            <h1 id="editor-title">メモを整理する</h1>
-          </div>
-          <div class="header-actions">
-            <span class="user-badge" id="userGreeting"></span>
-            <span class="count" id="memoCount">0件</span>
-            <button type="button" class="secondary" id="logoutButton">ログアウト</button>
-          </div>
-        </div>
+          loginError.textContent = message;
+          loginError.hidden = false;
 
-        <form id="memoForm" class="memo-form" novalidate>
-          <p class="form-error" id="formError" hidden></p>
-          <input id="memoTitle" type="text" placeholder="タイトル" autocomplete="off" aria-required="true">
-          <textarea id="memoBody" rows="8" placeholder="本文を書いてください" aria-required="true"></textarea>
-          <input id="memoTags" type="text" placeholder="タグ（例: 勉強, アイデア）" autocomplete="off">
-          <div class="form-actions">
-            <button type="button" class="secondary" id="clearButton">クリア</button>
-            <button type="submit" id="saveButton">保存する</button>
-          </div>
-        </form>
-      </section>
+          googleLoginButton.addEventListener("click", () => {
+            alert(message);
+          });
 
-      <section class="library" aria-labelledby="library-title">
-        <div class="toolbar">
-          <h2 id="library-title">メモ一覧</h2>
-          <input id="searchInput" type="search" placeholder="検索">
-        </div>
+          emailAuthForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            alert(message);
+          });
 
-        <div class="tag-filter" id="tagFilter" aria-label="タグで絞り込み"></div>
-        <div class="memo-list" id="memoList"></div>
-      </section>
-    </main>
-
-    <template id="memoTemplate">
-      <article class="memo-card">
-        <div class="memo-card-header">
-          <h3></h3>
-          <time></time>
-        </div>
-        <p class="memo-body"></p>
-        <div class="memo-tags"></div>
-        <div class="card-actions">
-          <button type="button" class="secondary edit-button">編集</button>
-          <button type="button" class="danger delete-button">削除</button>
-        </div>
-      </article>
-    </template>
-
+          localModeButton.addEventListener("click", () => {
+            alert(message);
+          });
+        });
+      }
+    </script>
     <script type="module" src="app.js"></script>
     <script src="pwa.js"></script>
   </body>

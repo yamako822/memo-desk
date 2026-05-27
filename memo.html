@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="description" content="メモを整理する">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Memo Desk">
+    <title>Memo Desk | Memos</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main id="appScreen" class="app" hidden>
+      <p class="app-loading" id="appLoading" hidden>メモを読み込み中…</p>
+
+      <section class="editor" aria-labelledby="editor-title">
+        <div class="app-header">
+          <div>
+            <p class="eyebrow">Memo Desk</p>
+            <h1 id="editor-title">メモを整理する</h1>
+          </div>
+          <div class="header-actions">
+            <span class="user-badge" id="userGreeting"></span>
+            <form class="username-form" id="usernameForm" novalidate>
+              <label class="visually-hidden" for="usernameInput">ユーザー名</label>
+              <input id="usernameInput" type="text" maxlength="32" autocomplete="nickname" placeholder="ユーザー名">
+              <button type="submit" class="secondary" id="usernameSaveButton">変更</button>
+            </form>
+            <span class="count" id="memoCount">0件</span>
+            <button type="button" class="secondary" id="logoutButton">ログアウト</button>
+          </div>
+        </div>
+
+        <form id="memoForm" class="memo-form" novalidate>
+          <p class="form-error" id="formError" hidden></p>
+          <input id="memoTitle" type="text" maxlength="120" placeholder="タイトル" autocomplete="off" aria-required="true">
+          <textarea id="memoBody" rows="8" maxlength="10000" placeholder="本文を書いてください" aria-required="true"></textarea>
+          <input id="memoTags" type="text" maxlength="260" placeholder="タグ（例: 勉強, アイデア）" autocomplete="off">
+          <div class="form-actions">
+            <button type="button" class="secondary" id="clearButton">クリア</button>
+            <button type="submit" id="saveButton">保存する</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="library" aria-labelledby="library-title">
+        <div class="toolbar">
+          <h2 id="library-title">メモ一覧</h2>
+          <div class="toolbar-actions">
+            <button type="button" class="secondary favorite-filter-button" id="favoriteFilterButton" aria-pressed="false">お気に入り</button>
+            <input id="searchInput" type="search" placeholder="検索">
+          </div>
+        </div>
+
+        <div class="display-settings" aria-label="表示設定">
+          <label class="switch-control">
+            <input id="darkModeToggle" type="checkbox">
+            <span>ダークモード</span>
+          </label>
+          <label class="brightness-control" for="brightnessInput">
+            <span>明るさ</span>
+            <strong id="brightnessValue">100%</strong>
+          </label>
+          <input id="brightnessInput" type="range" min="80" max="120" step="5" value="100">
+        </div>
+
+        <div class="tag-filter" id="tagFilter" aria-label="タグで絞り込み"></div>
+        <div class="memo-list" id="memoList"></div>
+        <nav class="pagination" id="pagination" aria-label="メモ一覧のページ送り"></nav>
+      </section>
+    </main>
+
+    <template id="memoTemplate">
+      <article class="memo-card">
+        <div class="memo-card-header">
+          <div class="memo-card-title">
+            <h3></h3>
+            <time></time>
+          </div>
+          <button type="button" class="favorite-button" aria-pressed="false" aria-label="お気に入りに追加">☆</button>
+        </div>
+        <div class="memo-preview">
+          <p class="memo-body"></p>
+        </div>
+        <div class="memo-tags"></div>
+        <div class="card-actions">
+          <button type="button" class="secondary open-button">開く</button>
+          <button type="button" class="secondary edit-button">編集</button>
+          <button type="button" class="danger delete-button">削除</button>
+        </div>
+      </article>
+    </template>
+
+    <div class="memo-dialog-backdrop" id="memoDialog" role="dialog" aria-modal="true" aria-labelledby="memoDialogTitle" hidden>
+      <article class="memo-dialog-panel">
+        <div class="memo-dialog-header">
+          <div>
+            <p class="eyebrow">Memo Desk</p>
+            <h2 id="memoDialogTitle"></h2>
+            <time id="memoDialogTime"></time>
+          </div>
+          <button type="button" class="secondary icon-close-button" id="memoDialogCloseButton" aria-label="閉じる">×</button>
+        </div>
+        <div class="memo-dialog-body" id="memoDialogBody"></div>
+        <div class="memo-tags" id="memoDialogTags"></div>
+        <div class="card-actions">
+          <button type="button" class="secondary" id="memoDialogFavoriteButton">お気に入り</button>
+          <button type="button" class="secondary" id="memoDialogEditButton">編集</button>
+          <button type="button" class="danger" id="memoDialogDeleteButton">削除</button>
+        </div>
+      </article>
+    </div>
+
+    <script type="module" src="app.js"></script>
+    <script src="pwa.js"></script>
+  </body>
+</html>

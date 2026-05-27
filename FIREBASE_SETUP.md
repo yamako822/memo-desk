@@ -65,21 +65,26 @@ Memo Desk は **Firebase Authentication** でログインし、**Cloud Firestore
 **本人だけ**が自分のメモを読み書きできるようにします。
 
 1. Firestore の **ルール** タブを開く
-2. 次の内容に **置き換え**（プロジェクト内の `firestore.rules` と同じ内容）:
-
-```
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/memos/{memoId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
+2. プロジェクト内の `firestore.rules` の内容をすべてコピーして貼り付ける
 3. **公開** をクリック
+
+Firebase CLI が使える場合は、このリポジトリで次を実行しても同じルールを反映できます。
+
+```powershell
+firebase deploy --only firestore:rules
+```
+
+このルールでは、本人確認に加えてメモの形も制限します。
+
+| 項目 | 制限 |
+|------|------|
+| 許可フィールド | `title`, `body`, `tags`, `updatedAt`, `favorite` のみ |
+| タイトル | 1〜120 文字 |
+| 本文 | 1〜10,000 文字 |
+| タグ | 最大 10 個 |
+| タグ1個 | 最大 24 文字 |
+| 更新日時 | 文字列、最大 40 文字 |
+| お気に入り | 真偽値のみ |
 
 ### データの保存場所
 
@@ -91,6 +96,7 @@ users
                     ├── title
                     ├── body
                     ├── tags
+                    ├── favorite
                     └── updatedAt
 ```
 
@@ -109,10 +115,28 @@ users
 
 ---
 
+## ステップ 6.5: 予算アラートを設定する
+
+大量書き込みや想定外の利用で費用が増えた時に気づけるよう、Google Cloud の Billing で予算アラートを設定します。
+
+1. Google Cloud Console を開く
+2. **お支払い** → **予算とアラート** を開く
+3. **予算を作成** をクリック
+4. 対象スコープで Firebase プロジェクト `memo-5ffec` を選ぶ
+5. 月額予算を入力する
+   - 例: まずは `500円` や `1,000円`
+6. アラートしきい値を設定する
+   - 例: `50%`, `90%`, `100%`
+7. メール通知先を確認して保存
+
+注意: 予算アラートは「通知」です。自動で課金を停止する仕組みではありません。
+
+---
+
 ## ステップ 7: GitHub に反映
 
 ```powershell
-cd "c:\Users\8210627\Documents\GitHub\memo-desk"
+cd "c:\Users\8210627\Documents\memo-desk"
 git add .
 git commit -m "Update app"
 git push

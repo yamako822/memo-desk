@@ -1,8 +1,9 @@
-const CACHE = "memo-desk-v4";
+const CACHE = "memo-desk-v13";
 
 const ASSETS = [
   "./",
   "./index.html",
+  "./memo.html",
   "./styles.css",
   "./app.js",
   "./pwa.js",

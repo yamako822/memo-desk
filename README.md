@@ -13,8 +13,28 @@ PWA としてインストールする場合は、上記 URL を Edge / Chrome �
 - **Google** または **メール・パスワード** でログイン
 - メモは **Firestore** に保存（同じアカウントなら別 PC からも同じメモ）
 - アカウントごとにメモは分離（他人のメモは見えません）
+- Firestore ルールで本文・タグ数・フィールド型を制限
+- 想定外の利用に備えて Google Cloud の予算アラート設定を推奨
 
 **設定手順:** [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)（Firestore の作成とセキュリティルールが必要です）
+
+## 運用前チェック
+
+- GitHub Pages: `main` / `/ (root)` で公開
+- Firebase Authentication: Google とメール/パスワードを有効化
+- Firestore Database: 作成済み
+- Firestore ルール: `firestore.rules` を公開済み
+- 承認済みドメイン: `yamako822.github.io` を追加済み
+- 予算アラート: Google Cloud Billing で設定推奨
+
+## ローカルモード
+
+ログイン画面の **ログインせずに使う** から、このPCだけで使うローカルモードを開始できます。
+
+- ログイン不要
+- メモはこのブラウザ内の `localStorage` に保存
+- 別PC・別ブラウザとは同期されません
+- ブラウザのサイトデータを削除するとローカルメモも消える可能性があります
 
 ## GitHub Pages の設定（初回のみ）
 
@@ -50,8 +70,23 @@ PWA としてインストールする場合は、上記 URL を Edge / Chrome �
 ## ローカルで試す
 
 `index.html` を `http://localhost` 経由で開いてください（`file://` では PWA が使えません）。
+ログインページは `index.html`、ログイン後のメモページは `memo.html` です。ログイン済みの場合は自動でメモページへ移動します。
 
 ```powershell
 # Node が入っている場合の例
 npx serve .
 ```
+
+このリポジトリ内の起動スクリプトを使う場合:
+
+```powershell
+node .\start-local-node.mjs
+```
+
+Node が入っていない場合は、このフォルダで次を実行してください。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-local.ps1
+```
+
+表示された `http://127.0.0.1:4173/` をブラウザで開きます。

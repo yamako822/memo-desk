@@ -2,9 +2,48 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function validTag(tags, index) {
+      return tags.size() <= index || (tags[index] is string && tags[index].size() <= 24);
+    }
+
+    function validTags(tags) {
+      return tags is list
+        && tags.size() <= 10
+        && validTag(tags, 0)
+        && validTag(tags, 1)
+        && validTag(tags, 2)
+        && validTag(tags, 3)
+        && validTag(tags, 4)
+        && validTag(tags, 5)
+        && validTag(tags, 6)
+        && validTag(tags, 7)
+        && validTag(tags, 8)
+        && validTag(tags, 9);
+    }
+
+    function validMemo(data) {
+      return data.keys().hasOnly(["title", "body", "tags", "updatedAt", "favorite"])
+        && data.keys().hasAll(["title", "body", "tags", "updatedAt", "favorite"])
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 120
+        && data.body is string
+        && data.body.size() >= 1
+        && data.body.size() <= 10000
+        && validTags(data.tags)
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 40
+        && data.favorite is bool;
+    }
+
     // ログインした本人だけが、自分のメモを読み書きできる
     match /users/{userId}/memos/{memoId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validMemo(request.resource.data);
     }
   }
 }

@@ -1,28 +1,11 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import {
-  createUserWithEmailAndPassword,
-  getAuth,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  getFirestore,
-  onSnapshot,
-  orderBy,
-  query,
-  setDoc,
-  writeBatch,
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
 
+const FIREBASE_VERSION = "11.6.0";
 const LEGACY_STORAGE_KEY = "memo-desk-notes";
+const DISPLAY_SETTINGS_KEY = "memo-desk-display-settings";
+const LOCAL_MODE_KEY = "memo-desk-local-mode";
+const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
+const LOCAL_DISPLAY_NAME_KEY = "memo-desk-local-display-name";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
@@ -34,9 +17,13 @@ const passwordInput = document.querySelector("#passwordInput");
 const emailSubmitButton = document.querySelector("#emailSubmitButton");
 const emailSignInTab = document.querySelector("#emailSignInTab");
 const emailSignUpTab = document.querySelector("#emailSignUpTab");
+const localModeButton = document.querySelector("#localModeButton");
 const loginHint = document.querySelector("#loginHint");
 const loginError = document.querySelector("#loginError");
 const userGreeting = document.querySelector("#userGreeting");
+const usernameForm = document.querySelector("#usernameForm");
+const usernameInput = document.querySelector("#usernameInput");
+const usernameSaveButton = document.querySelector("#usernameSaveButton");
 const logoutButton = document.querySelector("#logoutButton");
 
 const form = document.querySelector("#memoForm");
@@ -47,19 +34,140 @@ const searchInput = document.querySelector("#searchInput");
 const memoList = document.querySelector("#memoList");
 const memoCount = document.querySelector("#memoCount");
 const tagFilter = document.querySelector("#tagFilter");
+const pagination = document.querySelector("#pagination");
+const favoriteFilterButton = document.querySelector("#favoriteFilterButton");
+const darkModeToggle = document.querySelector("#darkModeToggle");
+const brightnessInput = document.querySelector("#brightnessInput");
+const brightnessValue = document.querySelector("#brightnessValue");
 const clearButton = document.querySelector("#clearButton");
 const saveButton = document.querySelector("#saveButton");
 const formError = document.querySelector("#formError");
 const template = document.querySelector("#memoTemplate");
+const memoDialog = document.querySelector("#memoDialog");
+const memoDialogTitle = document.querySelector("#memoDialogTitle");
+const memoDialogTime = document.querySelector("#memoDialogTime");
+const memoDialogBody = document.querySelector("#memoDialogBody");
+const memoDialogTags = document.querySelector("#memoDialogTags");
+const memoDialogCloseButton = document.querySelector("#memoDialogCloseButton");
+const memoDialogFavoriteButton = document.querySelector("#memoDialogFavoriteButton");
+const memoDialogEditButton = document.querySelector("#memoDialogEditButton");
+const memoDialogDeleteButton = document.querySelector("#memoDialogDeleteButton");
+
+const isLoginPage = Boolean(loginScreen);
+const isMemoPage = Boolean(appScreen);
+const MEMOS_PER_PAGE = 8;
+const TITLE_MAX_LENGTH = 120;
+const BODY_MAX_LENGTH = 10000;
+const TAG_MAX_COUNT = 10;
+const TAG_MAX_LENGTH = 24;
 
 let auth = null;
 let db = null;
+let initializeApp = null;
+let createUserWithEmailAndPassword = null;
+let getAuth = null;
+let GoogleAuthProvider = null;
+let onAuthStateChanged = null;
+let signInWithEmailAndPassword = null;
+let signInWithPopup = null;
+let signOut = null;
+let updateProfile = null;
+let collection = null;
+let deleteDoc = null;
+let doc = null;
+let getDocs = null;
+let getFirestore = null;
+let onSnapshot = null;
+let orderBy = null;
+let query = null;
+let setDoc = null;
+let writeBatch = null;
 let currentUser = null;
 let unsubscribeMemos = null;
 let memos = [];
+let dataMode = "cloud";
 let editingId = null;
 let activeTag = "all";
 let emailAuthMode = "signin";
+let showFavoritesOnly = false;
+let openMemoId = null;
+let currentPage = 1;
+
+function readDisplaySettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DISPLAY_SETTINGS_KEY));
+    return {
+      dark: Boolean(saved?.dark),
+      brightness: Number(saved?.brightness) || 100,
+    };
+  } catch {
+    return { dark: false, brightness: 100 };
+  }
+}
+
+let displaySettings = readDisplaySettings();
+
+async function loadFirebaseModules() {
+  if (initializeApp) return;
+
+  const [appModule, authModule, firestoreModule] = await Promise.all([
+    import(`https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`),
+    import(`https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`),
+    import(`https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`),
+  ]);
+
+  ({ initializeApp } = appModule);
+  ({
+    createUserWithEmailAndPassword,
+    getAuth,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    signOut,
+    updateProfile,
+  } = authModule);
+  ({
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    getFirestore,
+    onSnapshot,
+    orderBy,
+    query,
+    setDoc,
+    writeBatch,
+  } = firestoreModule);
+}
+
+function pageUrl(fileName) {
+  const url = new URL(window.location.href);
+  url.pathname = url.pathname.replace(/[^/]*$/, fileName);
+  url.search = "";
+  url.hash = "";
+  return url.href;
+}
+
+function goToLogin() {
+  window.location.replace(pageUrl("index.html"));
+}
+
+function goToMemos() {
+  window.location.replace(pageUrl("memo.html"));
+}
+
+function isLocalModeEnabled() {
+  return localStorage.getItem(LOCAL_MODE_KEY) === "true";
+}
+
+function enableLocalMode() {
+  localStorage.setItem(LOCAL_MODE_KEY, "true");
+}
+
+function disableLocalMode() {
+  localStorage.removeItem(LOCAL_MODE_KEY);
+}
 
 function memosCollectionRef(uid) {
   return collection(db, "users", uid, "memos");
@@ -70,6 +178,7 @@ function memoDocRef(uid, memoId) {
 }
 
 function showLoginError(message) {
+  if (!loginError) return;
   loginError.textContent = message;
   loginError.hidden = !message;
 }
@@ -79,6 +188,7 @@ function clearLoginError() {
 }
 
 function showFormError(message) {
+  if (!formError) return;
   formError.textContent = message;
   formError.hidden = !message;
 }
@@ -88,6 +198,7 @@ function clearFormError() {
 }
 
 function setAuthLoading(isLoading) {
+  if (!isLoginPage) return;
   googleLoginButton.disabled = isLoading;
   emailSubmitButton.disabled = isLoading;
   emailSignInTab.disabled = isLoading;
@@ -96,23 +207,103 @@ function setAuthLoading(isLoading) {
 }
 
 function setAppLoading(isLoading) {
-  appLoading.hidden = !isLoading;
+  if (appLoading) appLoading.hidden = !isLoading;
+}
+
+function setUsernameSaving(isSaving) {
+  if (!isMemoPage) return;
+  usernameInput.disabled = isSaving;
+  usernameSaveButton.disabled = isSaving;
+}
+
+function normalizeMemo(data, fallbackId = crypto.randomUUID()) {
+  return {
+    id: data?.id || fallbackId,
+    title: data?.title ?? "",
+    body: data?.body ?? "",
+    tags: Array.isArray(data?.tags) ? data.tags : [],
+    updatedAt: data?.updatedAt ?? new Date().toISOString(),
+    favorite: Boolean(data?.favorite),
+  };
+}
+
+function sortMemos(items) {
+  return [...items].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+
+function readJsonArray(key) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key));
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadLocalMemos() {
+  const savedMemos = readJsonArray(LOCAL_MEMOS_KEY);
+  if (savedMemos.length > 0) {
+    return sortMemos(savedMemos.map((memo) => normalizeMemo(memo)));
+  }
+
+  const legacyMemos = readJsonArray(LEGACY_STORAGE_KEY);
+  if (legacyMemos.length > 0) {
+    const normalized = sortMemos(legacyMemos.map((memo) => normalizeMemo(memo)));
+    localStorage.setItem(LOCAL_MEMOS_KEY, JSON.stringify(normalized));
+    return normalized;
+  }
+
+  return [];
+}
+
+function saveLocalMemos() {
+  localStorage.setItem(LOCAL_MEMOS_KEY, JSON.stringify(sortMemos(memos)));
 }
 
 function showLogin() {
   stopMemoSubscription();
   currentUser = null;
   memos = [];
-  loginScreen.hidden = false;
-  appScreen.hidden = true;
+  if (loginScreen) loginScreen.hidden = false;
   clearLoginError();
   setAuthLoading(false);
-  setAppLoading(false);
-  googleLoginButton.focus();
+  googleLoginButton?.focus();
 }
 
 function getDisplayName(user) {
   return user.displayName || user.email?.split("@")[0] || "ユーザー";
+}
+
+function updateUserDisplay(user) {
+  if (!isMemoPage) return;
+  const displayName = getDisplayName(user);
+  userGreeting.textContent = `${displayName}さん`;
+  usernameInput.value = displayName;
+}
+
+function normalizeBrightness(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 100;
+  return Math.min(120, Math.max(80, number));
+}
+
+function saveDisplaySettings() {
+  localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(displaySettings));
+}
+
+function applyDisplaySettings() {
+  if (!isMemoPage) return;
+
+  displaySettings = {
+    dark: Boolean(displaySettings.dark),
+    brightness: normalizeBrightness(displaySettings.brightness),
+  };
+
+  document.documentElement.dataset.theme = displaySettings.dark ? "dark" : "light";
+  document.documentElement.style.setProperty("--app-brightness", `${displaySettings.brightness}%`);
+  darkModeToggle.checked = displaySettings.dark;
+  brightnessInput.value = String(displaySettings.brightness);
+  brightnessValue.textContent = `${displaySettings.brightness}%`;
 }
 
 function stopMemoSubscription() {
@@ -130,10 +321,17 @@ function startMemoSubscription(user) {
   unsubscribeMemos = onSnapshot(
     q,
     (snapshot) => {
-      memos = snapshot.docs.map((document) => ({
-        id: document.id,
-        ...document.data(),
-      }));
+      memos = snapshot.docs.map((document) => {
+        const data = document.data();
+        return {
+          id: document.id,
+          title: data.title ?? "",
+          body: data.body ?? "",
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          updatedAt: data.updatedAt ?? new Date().toISOString(),
+          favorite: Boolean(data.favorite),
+        };
+      });
       setAppLoading(false);
       render();
     },
@@ -176,18 +374,21 @@ async function migrateLocalMemosIfNeeded(uid) {
       body: memo.body ?? "",
       tags: Array.isArray(memo.tags) ? memo.tags : [],
       updatedAt: memo.updatedAt ?? new Date().toISOString(),
+      favorite: Boolean(memo.favorite),
     });
   });
   await batch.commit();
 }
 
 async function enterApp(user) {
+  dataMode = "cloud";
   currentUser = user;
-  loginScreen.hidden = true;
-  appScreen.hidden = false;
-  userGreeting.textContent = `${getDisplayName(user)}さん`;
+  if (appScreen) appScreen.hidden = false;
+  updateUserDisplay(user);
   editingId = null;
   activeTag = "all";
+  showFavoritesOnly = false;
+  resetPagination();
   searchInput.value = "";
   setAppLoading(true);
   clearFormError();
@@ -203,13 +404,69 @@ async function enterApp(user) {
   }
 }
 
-async function logout() {
-  stopMemoSubscription();
-  if (auth) await signOut(auth);
-  memos = [];
+function enterLocalApp() {
+  dataMode = "local";
+  currentUser = {
+    uid: "local",
+    displayName: localStorage.getItem(LOCAL_DISPLAY_NAME_KEY) || "ローカル",
+  };
+  if (appScreen) appScreen.hidden = false;
+  updateUserDisplay(currentUser);
+  if (logoutButton) logoutButton.textContent = "モード選択へ";
   editingId = null;
   activeTag = "all";
-  showLogin();
+  showFavoritesOnly = false;
+  resetPagination();
+  searchInput.value = "";
+  memos = loadLocalMemos();
+  setAppLoading(false);
+  clearFormError();
+  resetForm();
+  render();
+}
+
+async function logout() {
+  stopMemoSubscription();
+  if (dataMode === "cloud" && auth) await signOut(auth);
+  if (dataMode === "local") disableLocalMode();
+  memos = [];
+  dataMode = "cloud";
+  editingId = null;
+  activeTag = "all";
+  showFavoritesOnly = false;
+  openMemoId = null;
+  resetPagination();
+  goToLogin();
+}
+
+async function updateUsername(event) {
+  event.preventDefault();
+  if (!currentUser) return;
+
+  const displayName = usernameInput.value.trim().replace(/\s+/g, " ");
+  if (!displayName) {
+    showFormError("ユーザー名を入力してください。");
+    usernameInput.focus();
+    return;
+  }
+
+  clearFormError();
+  setUsernameSaving(true);
+
+  try {
+    if (dataMode === "local") {
+      localStorage.setItem(LOCAL_DISPLAY_NAME_KEY, displayName);
+      currentUser.displayName = displayName;
+    } else {
+      await updateProfile(currentUser, { displayName });
+    }
+    updateUserDisplay({ ...currentUser, displayName });
+  } catch (error) {
+    console.error(error);
+    showFormError("ユーザー名の変更に失敗しました。");
+  } finally {
+    setUsernameSaving(false);
+  }
 }
 
 function parseAuthError(error) {
@@ -277,6 +534,7 @@ async function loginWithEmail(event) {
 }
 
 function setEmailAuthMode(mode) {
+  if (!isLoginPage) return;
   emailAuthMode = mode;
   const isSignIn = mode === "signin";
   emailSignInTab.classList.toggle("active", isSignIn);
@@ -292,6 +550,35 @@ function parseTags(text) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function validateMemoInput(title, body, tags) {
+  if (!title) {
+    return { message: "タイトルを入力してください。", target: titleInput };
+  }
+
+  if (title.length > TITLE_MAX_LENGTH) {
+    return { message: `タイトルは${TITLE_MAX_LENGTH}文字以内にしてください。`, target: titleInput };
+  }
+
+  if (!body) {
+    return { message: "本文を入力してください。", target: bodyInput };
+  }
+
+  if (body.length > BODY_MAX_LENGTH) {
+    return { message: `本文は${BODY_MAX_LENGTH}文字以内にしてください。`, target: bodyInput };
+  }
+
+  if (tags.length > TAG_MAX_COUNT) {
+    return { message: `タグは${TAG_MAX_COUNT}個以内にしてください。`, target: tagsInput };
+  }
+
+  const longTag = tags.find((tag) => tag.length > TAG_MAX_LENGTH);
+  if (longTag) {
+    return { message: `タグは1つ${TAG_MAX_LENGTH}文字以内にしてください。`, target: tagsInput };
+  }
+
+  return null;
 }
 
 function formatDate(value) {
@@ -312,8 +599,56 @@ function getFilteredMemos() {
       memo.body.toLowerCase().includes(keyword) ||
       memo.tags.some((tag) => tag.toLowerCase().includes(keyword));
     const matchesTag = activeTag === "all" || memo.tags.includes(activeTag);
-    return matchesKeyword && matchesTag;
+    const matchesFavorite = !showFavoritesOnly || memo.favorite;
+    return matchesKeyword && matchesTag && matchesFavorite;
   });
+}
+
+function resetPagination() {
+  currentPage = 1;
+}
+
+function getTotalPages(totalItems) {
+  return Math.max(1, Math.ceil(totalItems / MEMOS_PER_PAGE));
+}
+
+function renderFavoriteFilter() {
+  favoriteFilterButton.classList.toggle("active", showFavoritesOnly);
+  favoriteFilterButton.setAttribute("aria-pressed", String(showFavoritesOnly));
+}
+
+function renderPagination(totalItems) {
+  const totalPages = getTotalPages(totalItems);
+  pagination.innerHTML = "";
+  pagination.hidden = totalItems <= MEMOS_PER_PAGE;
+
+  if (pagination.hidden) return;
+
+  const status = document.createElement("span");
+  status.className = "pagination-status";
+  status.textContent = `${currentPage} / ${totalPages}`;
+
+  const prevButton = document.createElement("button");
+  prevButton.type = "button";
+  prevButton.className = "secondary";
+  prevButton.textContent = "前へ";
+  prevButton.disabled = currentPage === 1;
+  prevButton.addEventListener("click", () => {
+    currentPage = Math.max(1, currentPage - 1);
+    renderMemos();
+  });
+
+  const nextButton = document.createElement("button");
+  nextButton.type = "button";
+  nextButton.className = "secondary";
+  nextButton.textContent = "次へ";
+  nextButton.disabled = currentPage === totalPages;
+  nextButton.addEventListener("click", () => {
+    currentPage = Math.min(totalPages, currentPage + 1);
+    renderMemos();
+  });
+
+  pagination.append(prevButton, status, nextButton);
 }
 
 function renderTags() {
@@ -330,6 +665,7 @@ function renderTags() {
   allButton.classList.toggle("active", activeTag === "all");
   allButton.addEventListener("click", () => {
     activeTag = "all";
+    resetPagination();
     render();
   });
   tagFilter.append(allButton);
@@ -341,6 +677,7 @@ function renderTags() {
     button.classList.toggle("active", activeTag === tag);
     button.addEventListener("click", () => {
       activeTag = tag;
+      resetPagination();
       render();
     });
     tagFilter.append(button);
@@ -349,31 +686,45 @@ function renderTags() {
 
 function renderMemos() {
   const filteredMemos = getFilteredMemos();
+  const totalPages = getTotalPages(filteredMemos.length);
+  currentPage = Math.min(currentPage, totalPages);
+  const startIndex = (currentPage - 1) * MEMOS_PER_PAGE;
+  const pageMemos = filteredMemos.slice(startIndex, startIndex + MEMOS_PER_PAGE);
+
   memoList.innerHTML = "";
   memoCount.textContent = `${memos.length}件`;
+  if (openMemoId) updateMemoDialog(openMemoId);
 
-  if (filteredMemos.length === 0) {
+  if (pageMemos.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent = appLoading.hidden === false ? "読み込み中…" : "表示できるメモがありません";
     memoList.append(empty);
+    renderPagination(filteredMemos.length);
     return;
   }
 
-  filteredMemos.forEach((memo) => {
+  pageMemos.forEach((memo) => {
     const item = template.content.cloneNode(true);
     const card = item.querySelector(".memo-card");
     const title = item.querySelector("h3");
     const time = item.querySelector("time");
     const body = item.querySelector(".memo-body");
     const tags = item.querySelector(".memo-tags");
+    const favoriteButton = item.querySelector(".favorite-button");
+    const openButton = item.querySelector(".open-button");
     const editButton = item.querySelector(".edit-button");
     const deleteButton = item.querySelector(".delete-button");
+    const isFavorite = Boolean(memo.favorite);
 
     title.textContent = memo.title;
     time.textContent = formatDate(memo.updatedAt);
     time.dateTime = memo.updatedAt;
     body.textContent = memo.body;
+    card.classList.toggle("is-favorite", isFavorite);
+    favoriteButton.textContent = isFavorite ? "★" : "☆";
+    favoriteButton.setAttribute("aria-pressed", String(isFavorite));
+    favoriteButton.setAttribute("aria-label", isFavorite ? "お気に入りから外す" : "お気に入りに追加");
     tags.innerHTML = "";
 
     memo.tags.forEach((tag) => {
@@ -382,13 +733,19 @@ function renderMemos() {
       tags.append(tagItem);
     });
 
+    openButton.addEventListener("click", () => openMemoDialog(memo.id));
+    favoriteButton.addEventListener("click", () => toggleFavoriteMemo(memo.id));
     editButton.addEventListener("click", () => startEditing(memo.id));
     deleteButton.addEventListener("click", () => deleteMemo(memo.id));
+    card.addEventListener("dblclick", () => openMemoDialog(memo.id));
     memoList.append(card);
   });
+
+  renderPagination(filteredMemos.length);
 }
 
 function render() {
+  renderFavoriteFilter();
   renderTags();
   renderMemos();
 }
@@ -405,12 +762,60 @@ function startEditing(id) {
   const memo = memos.find((item) => item.id === id);
   if (!memo) return;
 
+  closeMemoDialog();
   editingId = id;
   titleInput.value = memo.title;
   bodyInput.value = memo.body;
   tagsInput.value = memo.tags.join(", ");
   saveButton.textContent = "更新する";
   titleInput.focus();
+}
+
+function renderDialogTags(memo) {
+  memoDialogTags.innerHTML = "";
+
+  memo.tags.forEach((tag) => {
+    const tagItem = document.createElement("span");
+    tagItem.textContent = tag;
+    memoDialogTags.append(tagItem);
+  });
+}
+
+function updateMemoDialog(id) {
+  if (!memoDialog || memoDialog.hidden) return;
+
+  const memo = memos.find((item) => item.id === id);
+  if (!memo) {
+    closeMemoDialog();
+    return;
+  }
+
+  const isFavorite = Boolean(memo.favorite);
+  memoDialogTitle.textContent = memo.title;
+  memoDialogTime.textContent = formatDate(memo.updatedAt);
+  memoDialogTime.dateTime = memo.updatedAt;
+  memoDialogBody.textContent = memo.body;
+  memoDialogFavoriteButton.textContent = isFavorite ? "お気に入り解除" : "お気に入り";
+  memoDialogFavoriteButton.setAttribute("aria-pressed", String(isFavorite));
+  renderDialogTags(memo);
+}
+
+function openMemoDialog(id) {
+  if (!memoDialog) return;
+
+  openMemoId = id;
+  memoDialog.hidden = false;
+  document.body.classList.add("dialog-open");
+  updateMemoDialog(id);
+  memoDialogCloseButton.focus();
+}
+
+function closeMemoDialog() {
+  if (!memoDialog || memoDialog.hidden) return;
+
+  memoDialog.hidden = true;
+  openMemoId = null;
+  document.body.classList.remove("dialog-open");
 }
 
 async function deleteMemo(id) {
@@ -421,29 +826,102 @@ async function deleteMemo(id) {
   if (!ok) return;
 
   try {
-    await deleteDoc(memoDocRef(currentUser.uid, id));
+    if (dataMode === "local") {
+      memos = memos.filter((item) => item.id !== id);
+      saveLocalMemos();
+      render();
+    } else {
+      await deleteDoc(memoDocRef(currentUser.uid, id));
+    }
+    if (openMemoId === id) closeMemoDialog();
     if (editingId === id) resetForm();
   } catch {
     showFormError("削除に失敗しました。");
   }
 }
 
-async function saveMemoToFirestore(memo) {
+async function saveMemo(memo) {
   if (!currentUser) return;
+  if (dataMode === "local") {
+    const index = memos.findIndex((item) => item.id === memo.id);
+    if (index >= 0) {
+      memos[index] = memo;
+    } else {
+      memos.push(memo);
+    }
+    memos = sortMemos(memos);
+    saveLocalMemos();
+    render();
+    return;
+  }
+
   await setDoc(memoDocRef(currentUser.uid, memo.id), {
     title: memo.title,
     body: memo.body,
     tags: memo.tags,
     updatedAt: memo.updatedAt,
+    favorite: memo.favorite,
   });
 }
 
-function initFirebase() {
+async function toggleFavoriteMemo(id) {
+  const memo = memos.find((item) => item.id === id);
+  if (!memo || !currentUser) return;
+
+  try {
+    if (dataMode === "local") {
+      memo.favorite = !memo.favorite;
+      saveLocalMemos();
+      render();
+    } else {
+      await setDoc(
+        memoDocRef(currentUser.uid, id),
+        { favorite: !memo.favorite },
+        { merge: true },
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    showFormError("お気に入りの変更に失敗しました。");
+  }
+}
+
+async function initFirebase() {
+  if (isLocalModeEnabled()) {
+    if (isLoginPage) {
+      goToMemos();
+    } else {
+      enterLocalApp();
+    }
+    return;
+  }
+
   if (!isFirebaseConfigured()) {
-    showLoginError("firebase-config.js が未設定です。FIREBASE_SETUP.md を参照してください。");
-    googleLoginButton.disabled = true;
-    emailSubmitButton.disabled = true;
-    showLogin();
+    if (isLoginPage) {
+      showLoginError("firebase-config.js が未設定です。FIREBASE_SETUP.md を参照してください。");
+      googleLoginButton.disabled = true;
+      emailSubmitButton.disabled = true;
+      showLogin();
+    } else {
+      showFormError("firebase-config.js が未設定です。FIREBASE_SETUP.md を参照してください。");
+      if (appScreen) appScreen.hidden = false;
+    }
+    return;
+  }
+
+  setAuthLoading(true);
+
+  try {
+    await loadFirebaseModules();
+  } catch (error) {
+    console.error(error);
+    if (isLoginPage) {
+      showLoginError("Firebase の読み込みに失敗しました。ネットワーク接続を確認するか、ローカルモードを使ってください。");
+      setAuthLoading(false);
+    } else {
+      showFormError("Firebase の読み込みに失敗しました。ネットワーク接続を確認してください。");
+      if (appScreen) appScreen.hidden = false;
+    }
     return;
   }
 
@@ -455,70 +933,130 @@ function initFirebase() {
     setAuthLoading(false);
 
     if (user) {
-      enterApp(user);
+      if (isLoginPage) {
+        goToMemos();
+      } else {
+        enterApp(user);
+      }
+      return;
+    }
+
+    if (isMemoPage) {
+      goToLogin();
     } else {
       showLogin();
     }
   });
 }
 
-googleLoginButton.addEventListener("click", loginWithGoogle);
-emailAuthForm.addEventListener("submit", loginWithEmail);
-emailSignInTab.addEventListener("click", () => setEmailAuthMode("signin"));
-emailSignUpTab.addEventListener("click", () => setEmailAuthMode("signup"));
-logoutButton.addEventListener("click", logout);
+function bindLoginPage() {
+  googleLoginButton.addEventListener("click", loginWithGoogle);
+  emailAuthForm.addEventListener("submit", loginWithEmail);
+  emailSignInTab.addEventListener("click", () => setEmailAuthMode("signin"));
+  emailSignUpTab.addEventListener("click", () => setEmailAuthMode("signup"));
+  localModeButton.addEventListener("click", () => {
+    enableLocalMode();
+    goToMemos();
+  });
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  clearFormError();
+  [emailInput, passwordInput].forEach((input) => {
+    input.addEventListener("input", clearLoginError);
+  });
 
-  if (!currentUser) return;
+  setEmailAuthMode("signin");
+}
 
-  const title = titleInput.value.trim();
-  const body = bodyInput.value.trim();
+function bindMemoPage() {
+  usernameForm.addEventListener("submit", updateUsername);
+  logoutButton.addEventListener("click", logout);
 
-  if (!title) {
-    showFormError("タイトルを入力してください。");
-    titleInput.focus();
-    return;
-  }
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError();
 
-  if (!body) {
-    showFormError("本文を入力してください。");
-    bodyInput.focus();
-    return;
-  }
+    if (!currentUser) return;
 
-  const memo = {
-    id: editingId ?? crypto.randomUUID(),
-    title,
-    body,
-    tags: parseTags(tagsInput.value),
-    updatedAt: new Date().toISOString(),
-  };
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+    const tags = parseTags(tagsInput.value);
+    const validationError = validateMemoInput(title, body, tags);
 
-  saveButton.disabled = true;
+    if (validationError) {
+      showFormError(validationError.message);
+      validationError.target.focus();
+      return;
+    }
 
-  try {
-    await saveMemoToFirestore(memo);
-    resetForm();
-  } catch {
-    showFormError("保存に失敗しました。Firestore の設定を確認してください。");
-  } finally {
-    saveButton.disabled = false;
-  }
-});
+    const memo = {
+      id: editingId ?? crypto.randomUUID(),
+      title,
+      body,
+      tags,
+      updatedAt: new Date().toISOString(),
+      favorite: memos.find((item) => item.id === editingId)?.favorite ?? false,
+    };
 
-[titleInput, bodyInput].forEach((input) => {
-  input.addEventListener("input", clearFormError);
-});
+    saveButton.disabled = true;
 
-[emailInput, passwordInput].forEach((input) => {
-  input.addEventListener("input", clearLoginError);
-});
+    try {
+      await saveMemo(memo);
+      resetForm();
+    } catch {
+      showFormError(
+        dataMode === "local"
+          ? "保存に失敗しました。ブラウザの保存容量を確認してください。"
+          : "保存に失敗しました。Firestore の設定を確認してください。",
+      );
+    } finally {
+      saveButton.disabled = false;
+    }
+  });
 
-searchInput.addEventListener("input", renderMemos);
-clearButton.addEventListener("click", resetForm);
+  [titleInput, bodyInput, usernameInput].forEach((input) => {
+    input.addEventListener("input", clearFormError);
+  });
 
-setEmailAuthMode("signin");
+  searchInput.addEventListener("input", () => {
+    resetPagination();
+    renderMemos();
+  });
+  favoriteFilterButton.addEventListener("click", () => {
+    showFavoritesOnly = !showFavoritesOnly;
+    resetPagination();
+    render();
+  });
+  darkModeToggle.addEventListener("change", () => {
+    displaySettings.dark = darkModeToggle.checked;
+    applyDisplaySettings();
+    saveDisplaySettings();
+  });
+  brightnessInput.addEventListener("input", () => {
+    displaySettings.brightness = normalizeBrightness(brightnessInput.value);
+    applyDisplaySettings();
+    saveDisplaySettings();
+  });
+  clearButton.addEventListener("click", resetForm);
+
+  memoDialogCloseButton.addEventListener("click", closeMemoDialog);
+  memoDialog.addEventListener("click", (event) => {
+    if (event.target === memoDialog) closeMemoDialog();
+  });
+  memoDialogFavoriteButton.addEventListener("click", () => {
+    if (openMemoId) toggleFavoriteMemo(openMemoId);
+  });
+  memoDialogEditButton.addEventListener("click", () => {
+    if (openMemoId) startEditing(openMemoId);
+  });
+  memoDialogDeleteButton.addEventListener("click", () => {
+    if (openMemoId) deleteMemo(openMemoId);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMemoDialog();
+  });
+
+  applyDisplaySettings();
+}
+
+if (isLoginPage) bindLoginPage();
+if (isMemoPage) bindMemoPage();
 initFirebase();
