@@ -3,6 +3,7 @@ import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
 const FIREBASE_VERSION = "11.6.0";
 const LEGACY_STORAGE_KEY = "memo-desk-notes";
 const DISPLAY_SETTINGS_KEY = "memo-desk-display-settings";
+const SORT_SETTING_KEY = "memo-desk-sort-setting";
 const LOCAL_MODE_KEY = "memo-desk-local-mode";
 const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
 const LOCAL_DISPLAY_NAME_KEY = "memo-desk-local-display-name";
@@ -31,6 +32,7 @@ const titleInput = document.querySelector("#memoTitle");
 const bodyInput = document.querySelector("#memoBody");
 const tagsInput = document.querySelector("#memoTags");
 const searchInput = document.querySelector("#searchInput");
+const sortSelect = document.querySelector("#sortSelect");
 const memoList = document.querySelector("#memoList");
 const memoCount = document.querySelector("#memoCount");
 const tagFilter = document.querySelector("#tagFilter");
@@ -49,6 +51,7 @@ const memoDialogTime = document.querySelector("#memoDialogTime");
 const memoDialogBody = document.querySelector("#memoDialogBody");
 const memoDialogTags = document.querySelector("#memoDialogTags");
 const memoDialogCloseButton = document.querySelector("#memoDialogCloseButton");
+const memoDialogPinButton = document.querySelector("#memoDialogPinButton");
 const memoDialogFavoriteButton = document.querySelector("#memoDialogFavoriteButton");
 const memoDialogEditButton = document.querySelector("#memoDialogEditButton");
 const memoDialogDeleteButton = document.querySelector("#memoDialogDeleteButton");
@@ -60,6 +63,8 @@ const TITLE_MAX_LENGTH = 120;
 const BODY_MAX_LENGTH = 10000;
 const TAG_MAX_COUNT = 10;
 const TAG_MAX_LENGTH = 24;
+const DEFAULT_SORT_MODE = "updatedDesc";
+const SORT_MODES = new Set(["updatedDesc", "updatedAsc", "titleAsc", "titleDesc"]);
 
 let auth = null;
 let db = null;
@@ -92,6 +97,7 @@ let emailAuthMode = "signin";
 let showFavoritesOnly = false;
 let openMemoId = null;
 let currentPage = 1;
+let sortMode = readSortMode();
 
 function readDisplaySettings() {
   try {
@@ -224,11 +230,40 @@ function normalizeMemo(data, fallbackId = crypto.randomUUID()) {
     tags: Array.isArray(data?.tags) ? data.tags : [],
     updatedAt: data?.updatedAt ?? new Date().toISOString(),
     favorite: Boolean(data?.favorite),
+    pinned: Boolean(data?.pinned),
   };
 }
 
 function sortMemos(items) {
   return [...items].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+
+function readSortMode() {
+  const saved = localStorage.getItem(SORT_SETTING_KEY);
+  return SORT_MODES.has(saved) ? saved : DEFAULT_SORT_MODE;
+}
+
+function saveSortMode() {
+  localStorage.setItem(SORT_SETTING_KEY, sortMode);
+}
+
+function compareTitle(a, b) {
+  return a.title.localeCompare(b.title, "ja-JP", { numeric: true, sensitivity: "base" });
+}
+
+function compareUpdatedAt(a, b) {
+  return new Date(a.updatedAt) - new Date(b.updatedAt);
+}
+
+function sortVisibleMemos(items) {
+  return [...items].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+
+    if (sortMode === "updatedAsc") return compareUpdatedAt(a, b);
+    if (sortMode === "titleAsc") return compareTitle(a, b) || compareUpdatedAt(b, a);
+    if (sortMode === "titleDesc") return compareTitle(b, a) || compareUpdatedAt(b, a);
+    return compareUpdatedAt(b, a);
+  });
 }
 
 function readJsonArray(key) {
@@ -330,6 +365,7 @@ function startMemoSubscription(user) {
           tags: Array.isArray(data.tags) ? data.tags : [],
           updatedAt: data.updatedAt ?? new Date().toISOString(),
           favorite: Boolean(data.favorite),
+          pinned: Boolean(data.pinned),
         };
       });
       setAppLoading(false);
@@ -375,6 +411,7 @@ async function migrateLocalMemosIfNeeded(uid) {
       tags: Array.isArray(memo.tags) ? memo.tags : [],
       updatedAt: memo.updatedAt ?? new Date().toISOString(),
       favorite: Boolean(memo.favorite),
+      pinned: Boolean(memo.pinned),
     });
   });
   await batch.commit();
@@ -617,6 +654,10 @@ function renderFavoriteFilter() {
   favoriteFilterButton.setAttribute("aria-pressed", String(showFavoritesOnly));
 }
 
+function renderSortControl() {
+  if (sortSelect) sortSelect.value = SORT_MODES.has(sortMode) ? sortMode : DEFAULT_SORT_MODE;
+}
+
 function renderPagination(totalItems) {
   const totalPages = getTotalPages(totalItems);
   pagination.innerHTML = "";
@@ -685,7 +726,7 @@ function renderTags() {
 }
 
 function renderMemos() {
-  const filteredMemos = getFilteredMemos();
+  const filteredMemos = sortVisibleMemos(getFilteredMemos());
   const totalPages = getTotalPages(filteredMemos.length);
   currentPage = Math.min(currentPage, totalPages);
   const startIndex = (currentPage - 1) * MEMOS_PER_PAGE;
@@ -711,17 +752,23 @@ function renderMemos() {
     const time = item.querySelector("time");
     const body = item.querySelector(".memo-body");
     const tags = item.querySelector(".memo-tags");
+    const pinButton = item.querySelector(".pin-button");
     const favoriteButton = item.querySelector(".favorite-button");
     const openButton = item.querySelector(".open-button");
     const editButton = item.querySelector(".edit-button");
     const deleteButton = item.querySelector(".delete-button");
     const isFavorite = Boolean(memo.favorite);
+    const isPinned = Boolean(memo.pinned);
 
     title.textContent = memo.title;
     time.textContent = formatDate(memo.updatedAt);
     time.dateTime = memo.updatedAt;
     body.textContent = memo.body;
+    card.classList.toggle("is-pinned", isPinned);
     card.classList.toggle("is-favorite", isFavorite);
+    pinButton.textContent = isPinned ? "固定中" : "ピン";
+    pinButton.setAttribute("aria-pressed", String(isPinned));
+    pinButton.setAttribute("aria-label", isPinned ? "ピン留めを外す" : "ピン留めする");
     favoriteButton.textContent = isFavorite ? "★" : "☆";
     favoriteButton.setAttribute("aria-pressed", String(isFavorite));
     favoriteButton.setAttribute("aria-label", isFavorite ? "お気に入りから外す" : "お気に入りに追加");
@@ -734,6 +781,7 @@ function renderMemos() {
     });
 
     openButton.addEventListener("click", () => openMemoDialog(memo.id));
+    pinButton.addEventListener("click", () => togglePinnedMemo(memo.id));
     favoriteButton.addEventListener("click", () => toggleFavoriteMemo(memo.id));
     editButton.addEventListener("click", () => startEditing(memo.id));
     deleteButton.addEventListener("click", () => deleteMemo(memo.id));
@@ -746,6 +794,7 @@ function renderMemos() {
 
 function render() {
   renderFavoriteFilter();
+  renderSortControl();
   renderTags();
   renderMemos();
 }
@@ -791,10 +840,13 @@ function updateMemoDialog(id) {
   }
 
   const isFavorite = Boolean(memo.favorite);
+  const isPinned = Boolean(memo.pinned);
   memoDialogTitle.textContent = memo.title;
   memoDialogTime.textContent = formatDate(memo.updatedAt);
   memoDialogTime.dateTime = memo.updatedAt;
   memoDialogBody.textContent = memo.body;
+  memoDialogPinButton.textContent = isPinned ? "ピン留め解除" : "ピン留め";
+  memoDialogPinButton.setAttribute("aria-pressed", String(isPinned));
   memoDialogFavoriteButton.textContent = isFavorite ? "お気に入り解除" : "お気に入り";
   memoDialogFavoriteButton.setAttribute("aria-pressed", String(isFavorite));
   renderDialogTags(memo);
@@ -861,7 +913,42 @@ async function saveMemo(memo) {
     tags: memo.tags,
     updatedAt: memo.updatedAt,
     favorite: memo.favorite,
+    pinned: memo.pinned,
   });
+}
+
+function memoWriteData(memo, changes = {}) {
+  return {
+    title: memo.title,
+    body: memo.body,
+    tags: memo.tags,
+    updatedAt: memo.updatedAt,
+    favorite: Boolean(memo.favorite),
+    pinned: Boolean(memo.pinned),
+    ...changes,
+  };
+}
+
+async function togglePinnedMemo(id) {
+  const memo = memos.find((item) => item.id === id);
+  if (!memo || !currentUser) return;
+
+  try {
+    if (dataMode === "local") {
+      memo.pinned = !memo.pinned;
+      saveLocalMemos();
+      render();
+    } else {
+      await setDoc(
+        memoDocRef(currentUser.uid, id),
+        memoWriteData(memo, { pinned: !memo.pinned }),
+        { merge: true },
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    showFormError("ピン留めの変更に失敗しました。");
+  }
 }
 
 async function toggleFavoriteMemo(id) {
@@ -876,7 +963,7 @@ async function toggleFavoriteMemo(id) {
     } else {
       await setDoc(
         memoDocRef(currentUser.uid, id),
-        { favorite: !memo.favorite },
+        memoWriteData(memo, { favorite: !memo.favorite }),
         { merge: true },
       );
     }
@@ -994,6 +1081,7 @@ function bindMemoPage() {
       tags,
       updatedAt: new Date().toISOString(),
       favorite: memos.find((item) => item.id === editingId)?.favorite ?? false,
+      pinned: memos.find((item) => item.id === editingId)?.pinned ?? false,
     };
 
     saveButton.disabled = true;
@@ -1020,6 +1108,12 @@ function bindMemoPage() {
     resetPagination();
     renderMemos();
   });
+  sortSelect.addEventListener("change", () => {
+    sortMode = SORT_MODES.has(sortSelect.value) ? sortSelect.value : DEFAULT_SORT_MODE;
+    saveSortMode();
+    resetPagination();
+    renderMemos();
+  });
   favoriteFilterButton.addEventListener("click", () => {
     showFavoritesOnly = !showFavoritesOnly;
     resetPagination();
@@ -1043,6 +1137,9 @@ function bindMemoPage() {
   });
   memoDialogFavoriteButton.addEventListener("click", () => {
     if (openMemoId) toggleFavoriteMemo(openMemoId);
+  });
+  memoDialogPinButton.addEventListener("click", () => {
+    if (openMemoId) togglePinnedMemo(openMemoId);
   });
   memoDialogEditButton.addEventListener("click", () => {
     if (openMemoId) startEditing(openMemoId);

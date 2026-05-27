@@ -26,8 +26,8 @@ service cloud.firestore {
     }
 
     function validMemo(data) {
-      return data.keys().hasOnly(["title", "body", "tags", "updatedAt", "favorite"])
-        && data.keys().hasAll(["title", "body", "tags", "updatedAt", "favorite"])
+      return data.keys().hasOnly(["title", "body", "tags", "updatedAt", "favorite", "pinned"])
+        && data.keys().hasAll(["title", "body", "tags", "updatedAt", "favorite", "pinned"])
         && data.title is string
         && data.title.size() >= 1
         && data.title.size() <= 120
@@ -37,7 +37,8 @@ service cloud.firestore {
         && validTags(data.tags)
         && data.updatedAt is string
         && data.updatedAt.size() <= 40
-        && data.favorite is bool;
+        && data.favorite is bool
+        && data.pinned is bool;
     }
 
     // ログインした本人だけが、自分のメモを読み書きできる

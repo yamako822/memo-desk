@@ -78,13 +78,14 @@ firebase deploy --only firestore:rules
 
 | 項目 | 制限 |
 |------|------|
-| 許可フィールド | `title`, `body`, `tags`, `updatedAt`, `favorite` のみ |
+| 許可フィールド | `title`, `body`, `tags`, `updatedAt`, `favorite`, `pinned` のみ |
 | タイトル | 1〜120 文字 |
 | 本文 | 1〜10,000 文字 |
 | タグ | 最大 10 個 |
 | タグ1個 | 最大 24 文字 |
 | 更新日時 | 文字列、最大 40 文字 |
 | お気に入り | 真偽値のみ |
+| ピン留め | 真偽値のみ |
 
 ### データの保存場所
 
@@ -97,6 +98,7 @@ users
                     ├── body
                     ├── tags
                     ├── favorite
+                    ├── pinned
                     └── updatedAt
 ```
 
