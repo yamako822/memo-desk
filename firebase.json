@@ -1,4 +1,35 @@
 {
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      ".git/**",
+      ".firebase/**",
+      ".gitattributes",
+      ".gitignore",
+      ".nojekyll",
+      ".server-*.log",
+      "firebase-config.example.js",
+      "firestore.rules",
+      "FIREBASE_SETUP.md",
+      "FEEDBACK_SETUP.md",
+      "README.md",
+      "start-local-node.mjs",
+      "start-local.ps1"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|html|webmanifest)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  },
   "firestore": {
     "rules": "firestore.rules"
   }

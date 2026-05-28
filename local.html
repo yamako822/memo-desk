@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="description" content="Memo Desk のローカル試用版">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Memo Desk">
+    <title>Memo Desk | Local Trial</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <section class="login-screen" aria-labelledby="local-title">
+      <div class="login-card">
+        <p class="eyebrow">Memo Desk</p>
+        <h1 id="local-title">ローカル試用版</h1>
+        <p class="login-note">ログインなしでメモ帳を試せます。メモはこのブラウザ内だけに保存され、他のPCやスマホとは同期されません。</p>
+        <div class="login-form">
+          <button type="button" class="local-trial-button" id="startLocalButton">メモ帳をはじめる</button>
+          <p class="login-note local-mode-note">ブラウザのサイトデータを削除すると、この試用版のメモも消えることがあります。</p>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const LOCAL_MODE_KEY = "memo-desk-local-mode";
+      const LOCAL_ENTRY_KEY = "memo-desk-local-entry";
+
+      document.querySelector("#startLocalButton").addEventListener("click", () => {
+        localStorage.setItem(LOCAL_MODE_KEY, "true");
+        localStorage.setItem(LOCAL_ENTRY_KEY, "true");
+        window.location.href = "memo.html";
+      });
+    </script>
+    <script src="pwa.js"></script>
+  </body>
+</html>

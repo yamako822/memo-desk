@@ -4,7 +4,12 @@
 
 ## 公開 URL
 
-**https://yamako822.github.io/memo-desk/**
+Firebase Hosting へ移行後は、Firebase Console の Hosting に表示される URL を使います。
+
+例:
+
+- `https://memo-5ffec.web.app/`
+- `https://memo-5ffec.firebaseapp.com/`
 
 PWA としてインストールする場合は、上記 URL を Edge / Chrome で開き、「アプリのインストール」から追加してください。
 
@@ -14,19 +19,41 @@ PWA としてインストールする場合は、上記 URL を Edge / Chrome �
 - メモは **Firestore** に保存（同じアカウントなら別 PC からも同じメモ）
 - アカウントごとにメモは分離（他人のメモは見えません）
 - ピン留めと並び替えで、重要なメモを上に固定
+- Google フォーム連携で利用者から要望を収集
 - Firestore ルールで本文・タグ数・フィールド型を制限
 - 想定外の利用に備えて Google Cloud の予算アラート設定を推奨
 
 **設定手順:** [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)（Firestore の作成とセキュリティルールが必要です）
+**要望フォーム設定:** [FEEDBACK_SETUP.md](./FEEDBACK_SETUP.md)
 
 ## 運用前チェック
 
-- GitHub Pages: `main` / `/ (root)` で公開
+- Firebase Hosting: デプロイ済み
 - Firebase Authentication: Google とメール/パスワードを有効化
 - Firestore Database: 作成済み
 - Firestore ルール: `firestore.rules` を公開済み
-- 承認済みドメイン: `yamako822.github.io` を追加済み
+- 承認済みドメイン: Firebase Hosting のドメインを追加済み
 - 予算アラート: Google Cloud Billing で設定推奨
+
+## Firebase Hosting で公開する
+
+GitHub に公開せず、このPCから Firebase Hosting に直接デプロイできます。
+
+初回のみ:
+
+```powershell
+npm install -g firebase-tools
+firebase login
+```
+
+公開:
+
+```powershell
+cd "c:\Users\8210627\Documents\memo-desk"
+firebase deploy --only hosting,firestore:rules
+```
+
+デプロイ後、Firebase Console の **Hosting** に表示される URL を開きます。Firebase Authentication の **承認済みドメイン** に、その Hosting ドメインが入っているかも確認してください。
 
 ## ローカルモード
 
@@ -36,6 +63,14 @@ PWA としてインストールする場合は、上記 URL を Edge / Chrome �
 - メモはこのブラウザ内の `localStorage` に保存
 - 別PC・別ブラウザとは同期されません
 - ブラウザのサイトデータを削除するとローカルメモも消える可能性があります
+
+周りの人に試してもらうだけなら、ローカル試用版の入口を共有します。
+
+```text
+https://example.com/local.html
+```
+
+公開先のドメインに合わせて `example.com` を置き換えてください。この入口では Google / メールログインを表示せず、ローカル保存だけで使えます。
 
 ## GitHub Pages の設定（初回のみ）
 

@@ -1,10 +1,12 @@
 import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
+import { feedbackConfig, isFeedbackConfigured } from "./feedback-config.js";
 
 const FIREBASE_VERSION = "11.6.0";
 const LEGACY_STORAGE_KEY = "memo-desk-notes";
 const DISPLAY_SETTINGS_KEY = "memo-desk-display-settings";
 const SORT_SETTING_KEY = "memo-desk-sort-setting";
 const LOCAL_MODE_KEY = "memo-desk-local-mode";
+const LOCAL_ENTRY_KEY = "memo-desk-local-entry";
 const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
 const LOCAL_DISPLAY_NAME_KEY = "memo-desk-local-display-name";
 
@@ -25,6 +27,7 @@ const userGreeting = document.querySelector("#userGreeting");
 const usernameForm = document.querySelector("#usernameForm");
 const usernameInput = document.querySelector("#usernameInput");
 const usernameSaveButton = document.querySelector("#usernameSaveButton");
+const feedbackButton = document.querySelector("#feedbackButton");
 const logoutButton = document.querySelector("#logoutButton");
 
 const form = document.querySelector("#memoForm");
@@ -159,6 +162,10 @@ function goToLogin() {
   window.location.replace(pageUrl("index.html"));
 }
 
+function goToLocalStart() {
+  window.location.replace(pageUrl("local.html"));
+}
+
 function goToMemos() {
   window.location.replace(pageUrl("memo.html"));
 }
@@ -173,6 +180,14 @@ function enableLocalMode() {
 
 function disableLocalMode() {
   localStorage.removeItem(LOCAL_MODE_KEY);
+}
+
+function useLocalOnlyEntry() {
+  return localStorage.getItem(LOCAL_ENTRY_KEY) === "true";
+}
+
+function disableLocalOnlyEntry() {
+  localStorage.removeItem(LOCAL_ENTRY_KEY);
 }
 
 function memosCollectionRef(uid) {
@@ -449,7 +464,7 @@ function enterLocalApp() {
   };
   if (appScreen) appScreen.hidden = false;
   updateUserDisplay(currentUser);
-  if (logoutButton) logoutButton.textContent = "モード選択へ";
+  if (logoutButton) logoutButton.textContent = useLocalOnlyEntry() ? "入口へ戻る" : "モード選択へ";
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
@@ -465,6 +480,7 @@ function enterLocalApp() {
 async function logout() {
   stopMemoSubscription();
   if (dataMode === "cloud" && auth) await signOut(auth);
+  const shouldReturnToLocalStart = dataMode === "local" && useLocalOnlyEntry();
   if (dataMode === "local") disableLocalMode();
   memos = [];
   dataMode = "cloud";
@@ -473,7 +489,20 @@ async function logout() {
   showFavoritesOnly = false;
   openMemoId = null;
   resetPagination();
+  if (shouldReturnToLocalStart) {
+    goToLocalStart();
+    return;
+  }
   goToLogin();
+}
+
+function openFeedbackForm() {
+  if (!isFeedbackConfigured()) {
+    showFormError("要望フォームURLが未設定です。FEEDBACK_SETUP.md を参照してください。");
+    return;
+  }
+
+  window.open(feedbackConfig.formUrl.trim(), "_blank", "noopener,noreferrer");
 }
 
 async function updateUsername(event) {
@@ -1042,6 +1071,7 @@ function bindLoginPage() {
   emailSignInTab.addEventListener("click", () => setEmailAuthMode("signin"));
   emailSignUpTab.addEventListener("click", () => setEmailAuthMode("signup"));
   localModeButton.addEventListener("click", () => {
+    disableLocalOnlyEntry();
     enableLocalMode();
     goToMemos();
   });
@@ -1055,6 +1085,7 @@ function bindLoginPage() {
 
 function bindMemoPage() {
   usernameForm.addEventListener("submit", updateUsername);
+  feedbackButton.addEventListener("click", openFeedbackForm);
   logoutButton.addEventListener("click", logout);
 
   form.addEventListener("submit", async (event) => {

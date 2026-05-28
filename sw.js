@@ -1,13 +1,15 @@
-const CACHE = "memo-desk-v14";
+const CACHE = "memo-desk-v16";
 
 const ASSETS = [
   "./",
   "./index.html",
+  "./local.html",
   "./memo.html",
   "./styles.css",
   "./app.js",
   "./pwa.js",
   "./firebase-config.js",
+  "./feedback-config.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",

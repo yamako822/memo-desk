@@ -278,6 +278,10 @@ label {
   padding: 7px 11px;
 }
 
+.feedback-button {
+  padding: 7px 11px;
+}
+
 .app {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
