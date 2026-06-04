@@ -98,23 +98,44 @@ test.describe('Memo Desk E2E', () => {
   test('dark mode keeps settings icon readable', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('memo-desk-display-settings', JSON.stringify({ dark: true, brightness: 100 }));
+      localStorage.setItem('memo-desk-custom-colors', JSON.stringify({
+        accent: '#0f766e',
+        bg: '#f7f5f0',
+        text: '#202124',
+        cardBg: '#fffefb'
+      }));
     });
 
     await page.goto('/memo.html');
     await page.waitForSelector('#settingsButton');
 
-    const styles = await page.locator('#settingsButton').evaluate((button) => {
-      const computed = getComputedStyle(button);
+    const styles = await page.evaluate(() => {
+      const read = (selector) => {
+        const element = document.querySelector(selector);
+        const computed = getComputedStyle(element);
+        return {
+          color: computed.color,
+          textFillColor: computed.webkitTextFillColor,
+          background: computed.backgroundColor
+        };
+      };
+
       return {
-        color: computed.color,
-        textFillColor: computed.webkitTextFillColor,
-        background: computed.backgroundColor
+        rootText: getComputedStyle(document.documentElement).getPropertyValue('--text').trim(),
+        settings: read('#settingsButton'),
+        newMemo: read('#newMemoButton'),
+        sort: read('#sortSelect'),
+        search: read('#searchInput'),
+        tag: read('#tagFilter button')
       };
     });
 
-    expect(styles.color).not.toBe('rgb(0, 0, 0)');
-    expect(styles.textFillColor).not.toBe('rgb(0, 0, 0)');
-    expect(styles.background).not.toBe('rgb(255, 255, 255)');
+    expect(styles.rootText).toBe('#eef3f1');
+    for (const key of ['settings', 'newMemo', 'sort', 'search', 'tag']) {
+      expect(styles[key].color).not.toBe('rgb(0, 0, 0)');
+      expect(styles[key].textFillColor).not.toBe('rgb(0, 0, 0)');
+    }
+    expect(styles.settings.background).not.toBe('rgb(255, 255, 255)');
   });
 
   test('renders reminder even when cached template has no reminder slot', async ({ page }) => {

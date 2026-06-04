@@ -401,6 +401,17 @@ textarea {
   line-height: 1.55;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+select option {
+  background: var(--field);
+  color: var(--text);
+}
+
 select {
   cursor: pointer;
 }
@@ -1027,7 +1038,10 @@ time {
 
 :root[data-theme="dark"] .secondary,
 :root[data-theme="dark"] .tag-filter button,
-:root[data-theme="dark"] .pagination button {
+:root[data-theme="dark"] .pagination button,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
   color: var(--text);
 }
 

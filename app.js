@@ -98,6 +98,18 @@ const TAG_MAX_LENGTH = 24;
 const AUTO_TAG_LIMIT = 5;
 const DEFAULT_SORT_MODE = "updatedDesc";
 const SORT_MODES = new Set(["updatedDesc", "updatedAsc", "titleAsc", "titleDesc"]);
+const DEFAULT_LIGHT_COLORS = {
+  accent: "#0f766e",
+  bg: "#f7f5f0",
+  text: "#202124",
+  cardBg: "#fffefb",
+};
+const DEFAULT_DARK_COLORS = {
+  accent: "#4cc9b8",
+  bg: "#111715",
+  text: "#eef3f1",
+  cardBg: "#17211e",
+};
 const AUTO_TAG_DICTIONARY = [
   { tag: "仕事", keywords: ["仕事", "業務", "会議", "打合せ", "打ち合わせ", "mtg", "見積", "依頼", "タスク", "todo", "締切", "顧客", "案件"] },
   { tag: "アイデア", keywords: ["アイデア", "案", "企画", "発想", "改善", "ネタ", "試したい"] },
@@ -182,18 +194,13 @@ function readCustomColors() {
   try {
     const saved = JSON.parse(localStorage.getItem(CUSTOM_COLORS_KEY));
     return {
-      accent: saved?.accent || "#0f766e",
-      bg: saved?.bg || "#f7f5f0",
-      text: saved?.text || "#202124",
-      cardBg: saved?.cardBg || "#fffefb",
+      accent: saved?.accent || DEFAULT_LIGHT_COLORS.accent,
+      bg: saved?.bg || DEFAULT_LIGHT_COLORS.bg,
+      text: saved?.text || DEFAULT_LIGHT_COLORS.text,
+      cardBg: saved?.cardBg || DEFAULT_LIGHT_COLORS.cardBg,
     };
   } catch {
-    return {
-      accent: "#0f766e",
-      bg: "#f7f5f0",
-      text: "#202124",
-      cardBg: "#fffefb",
-    };
+    return { ...DEFAULT_LIGHT_COLORS };
   }
 }
 
@@ -205,10 +212,11 @@ function saveCustomColors(colors) {
 
 function applyCustomColors(colors) {
   const root = document.documentElement;
-  root.style.setProperty("--accent", colors.accent);
-  root.style.setProperty("--bg", colors.bg);
-  root.style.setProperty("--text", colors.text);
-  root.style.setProperty("--card-bg", colors.cardBg);
+  const resolvedColors = displaySettings.dark ? DEFAULT_DARK_COLORS : colors;
+  root.style.setProperty("--accent", resolvedColors.accent);
+  root.style.setProperty("--bg", resolvedColors.bg);
+  root.style.setProperty("--text", resolvedColors.text);
+  root.style.setProperty("--card-bg", resolvedColors.cardBg);
   if (accentColorInput) accentColorInput.value = colors.accent;
   if (bgColorInput) bgColorInput.value = colors.bg;
   if (textColorInput) textColorInput.value = colors.text;
@@ -756,6 +764,7 @@ function applyDisplaySettings() {
   darkModeToggle.checked = displaySettings.dark;
   brightnessInput.value = String(displaySettings.brightness);
   brightnessValue.textContent = `${displaySettings.brightness}%`;
+  applyCustomColors(customColors);
 }
 
 function stopMemoSubscription() {
@@ -1829,12 +1838,7 @@ function bindMemoPage() {
   }
   if (colorResetButton) {
     colorResetButton.addEventListener("click", () => {
-      customColors = {
-        accent: "#0f766e",
-        bg: "#f7f5f0",
-        text: "#202124",
-        cardBg: "#fffefb",
-      };
+      customColors = { ...DEFAULT_LIGHT_COLORS };
       applyCustomColors(customColors);
       saveCustomColors(customColors);
     });
