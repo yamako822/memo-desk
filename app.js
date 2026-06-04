@@ -10,6 +10,7 @@ const LOCAL_ENTRY_KEY = "memo-desk-local-entry";
 const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
 const LOCAL_DISPLAY_NAME_KEY = "memo-desk-local-display-name";
 const DRAFT_KEY = "memo-desk-draft";
+const CUSTOM_COLORS_KEY = "memo-desk-custom-colors";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
@@ -65,6 +66,13 @@ const settingsDialogCloseButton = document.querySelector("#settingsDialogCloseBu
 const autoSaveToggle = document.querySelector("#autoSaveToggle");
 const settingsClearLocalButton = document.querySelector("#settingsClearLocalButton");
 const brightnessResetButton = document.querySelector("#brightnessResetButton");
+const accentColorInput = document.querySelector("#accentColorInput");
+const bgColorInput = document.querySelector("#bgColorInput");
+const textColorInput = document.querySelector("#textColorInput");
+const cardBgColorInput = document.querySelector("#cardBgColorInput");
+const colorResetButton = document.querySelector("#colorResetButton");
+const helpButton = document.querySelector("#helpButton");
+const helpPanel = document.querySelector("#helpPanel");
 const confirmDialog = document.querySelector("#confirmDialog");
 const confirmCancel = document.querySelector("#confirmCancel");
 const confirmOk = document.querySelector("#confirmOk");
@@ -125,7 +133,45 @@ function readDisplaySettings() {
   }
 }
 
+function readCustomColors() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_COLORS_KEY));
+    return {
+      accent: saved?.accent || "#0f766e",
+      bg: saved?.bg || "#f7f5f0",
+      text: saved?.text || "#202124",
+      cardBg: saved?.cardBg || "#fffefb",
+    };
+  } catch {
+    return {
+      accent: "#0f766e",
+      bg: "#f7f5f0",
+      text: "#202124",
+      cardBg: "#fffefb",
+    };
+  }
+}
+
+function saveCustomColors(colors) {
+  try {
+    localStorage.setItem(CUSTOM_COLORS_KEY, JSON.stringify(colors));
+  } catch {}
+}
+
+function applyCustomColors(colors) {
+  const root = document.documentElement;
+  root.style.setProperty("--accent", colors.accent);
+  root.style.setProperty("--bg", colors.bg);
+  root.style.setProperty("--text", colors.text);
+  root.style.setProperty("--card-bg", colors.cardBg);
+  if (accentColorInput) accentColorInput.value = colors.accent;
+  if (bgColorInput) bgColorInput.value = colors.bg;
+  if (textColorInput) textColorInput.value = colors.text;
+  if (cardBgColorInput) cardBgColorInput.value = colors.cardBg;
+}
+
 let displaySettings = readDisplaySettings();
+let customColors = readCustomColors();
 let autoSaveIntervalId = null;
 let autoSaveDebounceTimer = null;
 let draftInputHandler = null;
@@ -1229,6 +1275,17 @@ function bindMemoPage() {
       }
     });
   }
+
+  if (helpButton && helpPanel) {
+    helpButton.addEventListener("click", () => {
+      const show = helpPanel.hidden;
+      helpPanel.hidden = !show;
+      helpButton.setAttribute("aria-expanded", String(show));
+      if (!show) {
+        helpButton.focus();
+      }
+    });
+  }
   memoDialogFavoriteButton.addEventListener("click", () => {
     if (openMemoId) toggleFavoriteMemo(openMemoId);
   });
@@ -1245,6 +1302,12 @@ function bindMemoPage() {
     if (event.key === "Escape") {
       if (memoDialog && !memoDialog.hidden) {
         closeMemoDialog();
+        return;
+      }
+      if (helpPanel && !helpPanel.hidden) {
+        helpPanel.hidden = true;
+        helpButton?.setAttribute("aria-expanded", "false");
+        helpButton?.focus();
         return;
       }
       if (settingsDialog && !settingsDialog.hidden) {
@@ -1281,6 +1344,47 @@ function bindMemoPage() {
       displaySettings.brightness = 100;
       applyDisplaySettings();
       saveDisplaySettings();
+    });
+  }
+
+  if (accentColorInput) {
+    accentColorInput.addEventListener("change", () => {
+      customColors.accent = accentColorInput.value;
+      applyCustomColors(customColors);
+      saveCustomColors(customColors);
+    });
+  }
+  if (bgColorInput) {
+    bgColorInput.addEventListener("change", () => {
+      customColors.bg = bgColorInput.value;
+      applyCustomColors(customColors);
+      saveCustomColors(customColors);
+    });
+  }
+  if (textColorInput) {
+    textColorInput.addEventListener("change", () => {
+      customColors.text = textColorInput.value;
+      applyCustomColors(customColors);
+      saveCustomColors(customColors);
+    });
+  }
+  if (cardBgColorInput) {
+    cardBgColorInput.addEventListener("change", () => {
+      customColors.cardBg = cardBgColorInput.value;
+      applyCustomColors(customColors);
+      saveCustomColors(customColors);
+    });
+  }
+  if (colorResetButton) {
+    colorResetButton.addEventListener("click", () => {
+      customColors = {
+        accent: "#0f766e",
+        bg: "#f7f5f0",
+        text: "#202124",
+        cardBg: "#fffefb",
+      };
+      applyCustomColors(customColors);
+      saveCustomColors(customColors);
     });
   }
 
@@ -1343,6 +1447,7 @@ function bindMemoPage() {
   tryRestoreDraftOnLoad();
 
   applyDisplaySettings();
+  applyCustomColors(customColors);
 }
 
 if (isLoginPage) bindLoginPage();
