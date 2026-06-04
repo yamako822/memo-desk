@@ -11,6 +11,8 @@ const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
 const LOCAL_DISPLAY_NAME_KEY = "memo-desk-local-display-name";
 const DRAFT_KEY = "memo-desk-draft";
 const CUSTOM_COLORS_KEY = "memo-desk-custom-colors";
+const LAYOUT_SETTING_KEY = "memo-desk-layout-setting";
+const LAST_OPEN_MEMO_KEY = "memo-desk-last-open-memo";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
@@ -37,6 +39,9 @@ const titleInput = document.querySelector("#memoTitle");
 const bodyInput = document.querySelector("#memoBody");
 const tagsInput = document.querySelector("#memoTags");
 const tagSuggestList = document.querySelector("#tagSuggestList");
+const reminderInput = document.querySelector("#memoReminder");
+const autoTagButton = document.querySelector("#autoTagButton");
+const autoTagStatus = document.querySelector("#autoTagStatus");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const memoList = document.querySelector("#memoList");
@@ -56,6 +61,7 @@ const memoDialogTitle = document.querySelector("#memoDialogTitle");
 const memoDialogTime = document.querySelector("#memoDialogTime");
 const memoDialogBody = document.querySelector("#memoDialogBody");
 const memoDialogTags = document.querySelector("#memoDialogTags");
+const memoDialogReminder = document.querySelector("#memoDialogReminder");
 const memoDialogCloseButton = document.querySelector("#memoDialogCloseButton");
 const memoDialogPinButton = document.querySelector("#memoDialogPinButton");
 const memoDialogFavoriteButton = document.querySelector("#memoDialogFavoriteButton");
@@ -72,8 +78,11 @@ const bgColorInput = document.querySelector("#bgColorInput");
 const textColorInput = document.querySelector("#textColorInput");
 const cardBgColorInput = document.querySelector("#cardBgColorInput");
 const colorResetButton = document.querySelector("#colorResetButton");
+const layoutGridRadio = document.querySelector("#layoutGridRadio");
+const layoutListRadio = document.querySelector("#layoutListRadio");
 const helpButton = document.querySelector("#helpButton");
 const helpPanel = document.querySelector("#helpPanel");
+const newMemoButton = document.querySelector("#newMemoButton");
 const confirmDialog = document.querySelector("#confirmDialog");
 const confirmCancel = document.querySelector("#confirmCancel");
 const confirmOk = document.querySelector("#confirmOk");
@@ -86,8 +95,42 @@ const TITLE_MAX_LENGTH = 120;
 const BODY_MAX_LENGTH = 10000;
 const TAG_MAX_COUNT = 10;
 const TAG_MAX_LENGTH = 24;
+const AUTO_TAG_LIMIT = 5;
 const DEFAULT_SORT_MODE = "updatedDesc";
 const SORT_MODES = new Set(["updatedDesc", "updatedAsc", "titleAsc", "titleDesc"]);
+const AUTO_TAG_DICTIONARY = [
+  { tag: "仕事", keywords: ["仕事", "業務", "会議", "打合せ", "打ち合わせ", "mtg", "見積", "依頼", "タスク", "todo", "締切", "顧客", "案件"] },
+  { tag: "アイデア", keywords: ["アイデア", "案", "企画", "発想", "改善", "ネタ", "試したい"] },
+  { tag: "勉強", keywords: ["勉強", "学習", "講座", "資格", "復習", "読書", "教材"] },
+  { tag: "買い物", keywords: ["買い物", "購入", "注文", "欲しい", "ストア", "スーパー"] },
+  { tag: "予定", keywords: ["予定", "予約", "日程", "カレンダー", "イベント", "アポ"] },
+  { tag: "重要", keywords: ["重要", "至急", "急ぎ", "優先", "忘れない", "要確認"] },
+  { tag: "開発", keywords: ["開発", "コード", "実装", "バグ", "テスト", "deploy", "api", "css", "html", "javascript"] },
+  { tag: "デザイン", keywords: ["デザイン", "配色", "レイアウト", "ui", "ux", "画面"] },
+  { tag: "資料", keywords: ["資料", "ドキュメント", "議事録", "メモ", "まとめ", "共有"] },
+  { tag: "メール", keywords: ["メール", "返信", "送信", "連絡", "問い合わせ"] },
+  { tag: "健康", keywords: ["健康", "病院", "薬", "運動", "睡眠", "体調"] },
+  { tag: "旅行", keywords: ["旅行", "出張", "ホテル", "航空券", "移動", "旅程"] },
+];
+const AUTO_TAG_STOP_WORDS = new Set([
+  "する",
+  "した",
+  "して",
+  "です",
+  "ます",
+  "これ",
+  "それ",
+  "ため",
+  "こと",
+  "もの",
+  "メモ",
+  "memo",
+  "the",
+  "and",
+  "for",
+  "with",
+  "from",
+]);
 
 let auth = null;
 let db = null;
@@ -121,6 +164,7 @@ let showFavoritesOnly = false;
 let openMemoId = null;
 let currentPage = 1;
 let sortMode = readSortMode();
+let hasTriedRestoreOpenMemo = false;
 
 function readDisplaySettings() {
   try {
@@ -231,8 +275,242 @@ function hideTagSuggestions() {
   if (tagSuggestList) tagSuggestList.style.display = "none";
 }
 
+function hideAutoTagStatus() {
+  if (!autoTagStatus) return;
+  autoTagStatus.hidden = true;
+  autoTagStatus.textContent = "";
+}
+
+function showAutoTagStatus(message) {
+  if (!autoTagStatus) return;
+  autoTagStatus.textContent = message;
+  autoTagStatus.hidden = false;
+}
+
+function cleanAutoTag(tag) {
+  return String(tag || "")
+    .trim()
+    .replace(/^[#＃]+/, "")
+    .replace(/\s+/g, " ");
+}
+
+function addAutoTagScore(scores, tag, score) {
+  const cleaned = cleanAutoTag(tag);
+  const lower = cleaned.toLowerCase();
+  if (
+    !cleaned ||
+    cleaned.length < 2 ||
+    cleaned.length > TAG_MAX_LENGTH ||
+    AUTO_TAG_STOP_WORDS.has(lower)
+  ) {
+    return;
+  }
+
+  scores.set(cleaned, (scores.get(cleaned) || 0) + score);
+}
+
+function generateAutoTags(title, body) {
+  const source = `${title || ""}\n${body || ""}`.trim();
+  if (!source) return [];
+
+  const lowerSource = source.toLowerCase();
+  const scores = new Map();
+
+  getPopularTags().forEach((tag, index) => {
+    if (lowerSource.includes(tag.toLowerCase())) {
+      addAutoTagScore(scores, tag, 42 - index);
+    }
+  });
+
+  AUTO_TAG_DICTIONARY.forEach(({ tag, keywords }) => {
+    const matched = keywords.some((keyword) => lowerSource.includes(keyword.toLowerCase()));
+    if (matched) addAutoTagScore(scores, tag, 30);
+  });
+
+  const hashTags = [...source.matchAll(/[#＃]([\p{L}\p{N}_-]{2,24})/gu)].map((match) => match[1]);
+  hashTags.forEach((tag) => addAutoTagScore(scores, tag, 36));
+
+  source
+    .split(/[\s,、。．，.!?！？:：;；()[\]{}<>「」『』【】《》\/\\|]+/u)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .forEach((token) => {
+      const inTitle = title?.toLowerCase().includes(token.toLowerCase());
+      addAutoTagScore(scores, token, inTitle ? 12 : 5);
+    });
+
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja-JP"))
+    .slice(0, AUTO_TAG_LIMIT)
+    .map(([tag]) => tag);
+}
+
+function applyAutoTags({ silent = false, onlyWhenEmpty = false } = {}) {
+  if (!tagsInput) return [];
+
+  const existingTags = parseTags(tagsInput.value);
+  if (onlyWhenEmpty && existingTags.length > 0) return existingTags;
+
+  const generatedTags = generateAutoTags(titleInput.value, bodyInput.value);
+  const mergedTags = [...existingTags];
+
+  generatedTags.forEach((tag) => {
+    const exists = mergedTags.some((item) => item.toLowerCase() === tag.toLowerCase());
+    if (!exists && mergedTags.length < TAG_MAX_COUNT) mergedTags.push(tag);
+  });
+
+  if (mergedTags.length > existingTags.length) {
+    tagsInput.value = mergedTags.join(", ");
+    if (!silent) showAutoTagStatus(`${mergedTags.length - existingTags.length}件のタグを追加しました。`);
+  } else if (!silent) {
+    showAutoTagStatus("追加できるタグ候補が見つかりませんでした。");
+  }
+
+  showTagSuggestions();
+  return mergedTags;
+}
+
+function readLayoutSetting() {
+  const saved = localStorage.getItem(LAYOUT_SETTING_KEY);
+  return (saved === "list") ? "list" : "grid";
+}
+
+function saveLayoutSetting(layout) {
+  try {
+    localStorage.setItem(LAYOUT_SETTING_KEY, layout);
+  } catch {}
+}
+
+function applyLayoutSetting(layout) {
+  if (memoList) {
+    memoList.classList.toggle("list-view", layout === "list");
+  }
+  if (layoutGridRadio) layoutGridRadio.checked = layout === "grid";
+  if (layoutListRadio) layoutListRadio.checked = layout === "list";
+}
+
+function padDatePart(value) {
+  return String(value).padStart(2, "0");
+}
+
+function toReminderDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  if (typeof value === "object") {
+    if (typeof value.toDate === "function") {
+      const date = value.toDate();
+      return date instanceof Date && !Number.isNaN(date.getTime()) ? date : null;
+    }
+
+    const seconds = value.seconds ?? value._seconds;
+    if (Number.isFinite(seconds)) {
+      const milliseconds = seconds * 1000 + Math.floor((value.nanoseconds ?? value._nanoseconds ?? 0) / 1000000);
+      const date = new Date(milliseconds);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function normalizeReminderAt(value) {
+  const date = toReminderDate(value);
+  if (!date) return "";
+  return date.toISOString();
+}
+
+function toDatetimeLocalValue(value) {
+  const date = toReminderDate(value);
+  if (!date) return "";
+  return [
+    date.getFullYear(),
+    padDatePart(date.getMonth() + 1),
+    padDatePart(date.getDate()),
+  ].join("-") + `T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
+}
+
+function formatReminderDate(value) {
+  const date = toReminderDate(value);
+  if (!date) return "";
+  return new Intl.DateTimeFormat("ja-JP", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getReminderState(value) {
+  const date = toReminderDate(value);
+  if (!date) return "";
+  return date.getTime() < Date.now() ? "due" : "upcoming";
+}
+
+function rememberOpenMemo(id) {
+  if (!id || !currentUser) return;
+  try {
+    localStorage.setItem(
+      LAST_OPEN_MEMO_KEY,
+      JSON.stringify({
+        id,
+        dataMode,
+        uid: currentUser.uid,
+        openedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {}
+}
+
+function clearRememberedOpenMemo(id = null) {
+  try {
+    if (!id) {
+      localStorage.removeItem(LAST_OPEN_MEMO_KEY);
+      return;
+    }
+
+    const saved = JSON.parse(localStorage.getItem(LAST_OPEN_MEMO_KEY));
+    if (saved?.id === id) localStorage.removeItem(LAST_OPEN_MEMO_KEY);
+  } catch {
+    localStorage.removeItem(LAST_OPEN_MEMO_KEY);
+  }
+}
+
+function resetOpenMemoRestore() {
+  hasTriedRestoreOpenMemo = false;
+}
+
+function restoreLastOpenMemoIfNeeded() {
+  if (hasTriedRestoreOpenMemo || appLoading?.hidden === false || !currentUser) return;
+  hasTriedRestoreOpenMemo = true;
+  if (editingId || titleInput.value.trim() || bodyInput.value.trim() || tagsInput.value.trim()) return;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAST_OPEN_MEMO_KEY));
+    if (!saved?.id) return;
+
+    const isSameScope = saved.dataMode === dataMode && saved.uid === currentUser.uid;
+    if (!isSameScope) {
+      localStorage.removeItem(LAST_OPEN_MEMO_KEY);
+      return;
+    }
+
+    const memo = memos.find((item) => item.id === saved.id);
+    if (!memo) {
+      localStorage.removeItem(LAST_OPEN_MEMO_KEY);
+      return;
+    }
+
+    openMemoDialog(memo.id);
+  } catch {
+    localStorage.removeItem(LAST_OPEN_MEMO_KEY);
+  }
+}
+
 let displaySettings = readDisplaySettings();
 let customColors = readCustomColors();
+let layoutSetting = readLayoutSetting();
 let autoSaveIntervalId = null;
 let autoSaveDebounceTimer = null;
 let draftInputHandler = null;
@@ -366,6 +644,7 @@ function normalizeMemo(data, fallbackId = crypto.randomUUID()) {
     title: data?.title ?? "",
     body: data?.body ?? "",
     tags: Array.isArray(data?.tags) ? data.tags : [],
+    reminderAt: normalizeReminderAt(data?.reminderAt),
     updatedAt: data?.updatedAt ?? new Date().toISOString(),
     favorite: Boolean(data?.favorite),
     pinned: Boolean(data?.pinned),
@@ -501,6 +780,7 @@ function startMemoSubscription(user) {
           title: data.title ?? "",
           body: data.body ?? "",
           tags: Array.isArray(data.tags) ? data.tags : [],
+          reminderAt: normalizeReminderAt(data.reminderAt),
           updatedAt: data.updatedAt ?? new Date().toISOString(),
           favorite: Boolean(data.favorite),
           pinned: Boolean(data.pinned),
@@ -547,6 +827,7 @@ async function migrateLocalMemosIfNeeded(uid) {
       title: memo.title ?? "",
       body: memo.body ?? "",
       tags: Array.isArray(memo.tags) ? memo.tags : [],
+      reminderAt: normalizeReminderAt(memo.reminderAt),
       updatedAt: memo.updatedAt ?? new Date().toISOString(),
       favorite: Boolean(memo.favorite),
       pinned: Boolean(memo.pinned),
@@ -563,6 +844,7 @@ async function enterApp(user) {
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
+  resetOpenMemoRestore();
   resetPagination();
   searchInput.value = "";
   setAppLoading(true);
@@ -591,6 +873,7 @@ function enterLocalApp() {
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
+  resetOpenMemoRestore();
   resetPagination();
   searchInput.value = "";
   memos = loadLocalMemos();
@@ -786,7 +1069,8 @@ function getFilteredMemos() {
     const matchesKeyword =
       memo.title.toLowerCase().includes(keyword) ||
       memo.body.toLowerCase().includes(keyword) ||
-      memo.tags.some((tag) => tag.toLowerCase().includes(keyword));
+      memo.tags.some((tag) => tag.toLowerCase().includes(keyword)) ||
+      formatReminderDate(memo.reminderAt).toLowerCase().includes(keyword);
     const matchesTag = activeTag === "all" || memo.tags.includes(activeTag);
     const matchesFavorite = !showFavoritesOnly || memo.favorite;
     return matchesKeyword && matchesTag && matchesFavorite;
@@ -904,6 +1188,7 @@ function renderMemos() {
     const time = item.querySelector("time");
     const body = item.querySelector(".memo-body");
     const tags = item.querySelector(".memo-tags");
+    const reminder = getOrCreateCardReminder(card);
     const pinButton = item.querySelector(".pin-button");
     const favoriteButton = item.querySelector(".favorite-button");
     const openButton = item.querySelector(".open-button");
@@ -916,6 +1201,12 @@ function renderMemos() {
     time.textContent = formatDate(memo.updatedAt);
     time.dateTime = memo.updatedAt;
     body.textContent = memo.body;
+    const reminderText = formatReminderDate(memo.reminderAt);
+    if (reminder) {
+      reminder.hidden = !reminderText;
+      reminder.textContent = reminderText ? `リマインダー: ${reminderText}` : "";
+      reminder.dataset.state = getReminderState(memo.reminderAt);
+    }
     card.classList.toggle("is-pinned", isPinned);
     card.classList.toggle("is-favorite", isFavorite);
     pinButton.textContent = isPinned ? "固定中" : "ピン";
@@ -944,11 +1235,30 @@ function renderMemos() {
   renderPagination(filteredMemos.length);
 }
 
+function getOrCreateCardReminder(card) {
+  let reminder = card.querySelector(".memo-reminder");
+  if (reminder) return reminder;
+
+  reminder = document.createElement("p");
+  reminder.className = "memo-reminder";
+  reminder.hidden = true;
+
+  const preview = card.querySelector(".memo-preview");
+  if (preview) {
+    card.insertBefore(reminder, preview);
+  } else {
+    card.append(reminder);
+  }
+
+  return reminder;
+}
+
 function render() {
   renderFavoriteFilter();
   renderSortControl();
   renderTags();
   renderMemos();
+  restoreLastOpenMemoIfNeeded();
 }
 
 function resetForm() {
@@ -956,6 +1266,8 @@ function resetForm() {
   editingId = null;
   saveButton.textContent = "保存する";
   clearFormError();
+  hideAutoTagStatus();
+  hideTagSuggestions();
   if (!appScreen.hidden && appLoading.hidden) titleInput.focus();
 }
 
@@ -968,6 +1280,7 @@ function startEditing(id) {
   titleInput.value = memo.title;
   bodyInput.value = memo.body;
   tagsInput.value = memo.tags.join(", ");
+  if (reminderInput) reminderInput.value = toDatetimeLocalValue(memo.reminderAt);
   saveButton.textContent = "更新する";
   titleInput.focus();
 }
@@ -980,6 +1293,41 @@ function renderDialogTags(memo) {
     tagItem.textContent = tag;
     memoDialogTags.append(tagItem);
   });
+}
+
+function renderDialogReminder(memo) {
+  const reminder = getOrCreateDialogReminder();
+  if (!reminder) return;
+
+  const reminderText = formatReminderDate(memo.reminderAt);
+  reminder.hidden = !reminderText;
+  reminder.textContent = reminderText ? `リマインダー: ${reminderText}` : "";
+  reminder.dataset.state = getReminderState(memo.reminderAt);
+}
+
+function getOrCreateDialogReminder() {
+  if (memoDialogReminder) return memoDialogReminder;
+  if (!memoDialog) return null;
+
+  const panel = memoDialog.querySelector(".memo-dialog-panel");
+  if (!panel) return null;
+
+  const existing = panel.querySelector(".memo-dialog-reminder");
+  if (existing) return existing;
+
+  const reminder = document.createElement("p");
+  reminder.className = "memo-dialog-reminder";
+  reminder.id = "memoDialogReminder";
+  reminder.hidden = true;
+
+  const tags = panel.querySelector("#memoDialogTags");
+  if (tags) {
+    panel.insertBefore(reminder, tags);
+  } else {
+    panel.append(reminder);
+  }
+
+  return reminder;
 }
 
 function updateMemoDialog(id) {
@@ -1002,12 +1350,14 @@ function updateMemoDialog(id) {
   memoDialogFavoriteButton.textContent = isFavorite ? "お気に入り解除" : "お気に入り";
   memoDialogFavoriteButton.setAttribute("aria-pressed", String(isFavorite));
   renderDialogTags(memo);
+  renderDialogReminder(memo);
 }
 
 function openMemoDialog(id) {
   if (!memoDialog) return;
 
   openMemoId = id;
+  rememberOpenMemo(id);
   memoDialog.hidden = false;
   document.body.classList.add("dialog-open");
   updateMemoDialog(id);
@@ -1018,6 +1368,7 @@ function closeMemoDialog() {
   if (!memoDialog || memoDialog.hidden) return;
 
   memoDialog.hidden = true;
+  clearRememberedOpenMemo(openMemoId);
   openMemoId = null;
   document.body.classList.remove("dialog-open");
 }
@@ -1089,6 +1440,7 @@ async function saveMemo(memo) {
     title: memo.title,
     body: memo.body,
     tags: memo.tags,
+    reminderAt: normalizeReminderAt(memo.reminderAt),
     updatedAt: memo.updatedAt,
     favorite: memo.favorite,
     pinned: memo.pinned,
@@ -1100,6 +1452,7 @@ function memoWriteData(memo, changes = {}) {
     title: memo.title,
     body: memo.body,
     tags: memo.tags,
+    reminderAt: normalizeReminderAt(memo.reminderAt),
     updatedAt: memo.updatedAt,
     favorite: Boolean(memo.favorite),
     pinned: Boolean(memo.pinned),
@@ -1245,7 +1598,14 @@ function bindMemoPage() {
 
     const title = titleInput.value.trim();
     const body = bodyInput.value.trim();
-    const tags = parseTags(tagsInput.value);
+    let tags = parseTags(tagsInput.value);
+    if (tags.length === 0) {
+      tags = applyAutoTags({ silent: true, onlyWhenEmpty: true });
+    }
+    const existingMemo = memos.find((item) => item.id === editingId);
+    const reminderAt = reminderInput
+      ? normalizeReminderAt(reminderInput.value)
+      : normalizeReminderAt(existingMemo?.reminderAt);
     const validationError = validateMemoInput(title, body, tags);
 
     if (validationError) {
@@ -1259,15 +1619,17 @@ function bindMemoPage() {
       title,
       body,
       tags,
+      reminderAt,
       updatedAt: new Date().toISOString(),
-      favorite: memos.find((item) => item.id === editingId)?.favorite ?? false,
-      pinned: memos.find((item) => item.id === editingId)?.pinned ?? false,
+      favorite: existingMemo?.favorite ?? false,
+      pinned: existingMemo?.pinned ?? false,
     };
 
     saveButton.disabled = true;
 
     try {
       await saveMemo(memo);
+      clearDraft();
       resetForm();
     } catch {
       showFormError(
@@ -1280,8 +1642,8 @@ function bindMemoPage() {
     }
   });
 
-  [titleInput, bodyInput, usernameInput].forEach((input) => {
-    input.addEventListener("input", clearFormError);
+  [titleInput, bodyInput, usernameInput, reminderInput].forEach((input) => {
+    input?.addEventListener("input", clearFormError);
   });
 
   searchInput.addEventListener("input", () => {
@@ -1309,16 +1671,36 @@ function bindMemoPage() {
     applyDisplaySettings();
     saveDisplaySettings();
   });
-  clearButton.addEventListener("click", resetForm);
+  clearButton.addEventListener("click", () => {
+    clearDraft();
+    clearRememberedOpenMemo();
+    resetForm();
+  });
+
+  newMemoButton?.addEventListener("click", () => {
+    closeMemoDialog();
+    clearDraft();
+    clearRememberedOpenMemo();
+    resetForm();
+    document.querySelector(".editor")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  });
 
   // Tag suggestion handlers
   if (tagsInput) {
     tagsInput.addEventListener("focus", showTagSuggestions);
-    tagsInput.addEventListener("input", showTagSuggestions);
+    tagsInput.addEventListener("input", () => {
+      hideAutoTagStatus();
+      showTagSuggestions();
+    });
     tagsInput.addEventListener("blur", () => {
       setTimeout(hideTagSuggestions, 100);
     });
   }
+
+  autoTagButton?.addEventListener("click", () => {
+    applyAutoTags();
+    tagsInput?.focus();
+  });
 
   memoDialogCloseButton.addEventListener("click", closeMemoDialog);
   memoDialog.addEventListener("click", (event) => {
@@ -1458,6 +1840,22 @@ function bindMemoPage() {
     });
   }
 
+  // Layout radio handlers
+  if (layoutGridRadio) {
+    layoutGridRadio.addEventListener("change", () => {
+      layoutSetting = "grid";
+      applyLayoutSetting(layoutSetting);
+      saveLayoutSetting(layoutSetting);
+    });
+  }
+  if (layoutListRadio) {
+    layoutListRadio.addEventListener("change", () => {
+      layoutSetting = "list";
+      applyLayoutSetting(layoutSetting);
+      saveLayoutSetting(layoutSetting);
+    });
+  }
+
   // Clear local data handler: open confirm dialog
   if (settingsClearLocalButton) {
     settingsClearLocalButton.addEventListener("click", () => {
@@ -1518,6 +1916,7 @@ function bindMemoPage() {
 
   applyDisplaySettings();
   applyCustomColors(customColors);
+  applyLayoutSetting(layoutSetting);
 }
 
 if (isLoginPage) bindLoginPage();
@@ -1525,6 +1924,21 @@ if (isMemoPage) bindMemoPage();
 initFirebase();
 
 // Auto-save and draft helpers
+function createDraftSnapshot() {
+  return {
+    id: editingId,
+    title: titleInput.value || "",
+    body: bodyInput.value || "",
+    tags: tagsInput.value || "",
+    reminderAt: reminderInput?.value || "",
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function isDraftEmpty(draft) {
+  return !draft.id && !draft.title.trim() && !draft.body.trim() && !draft.tags.trim() && !draft.reminderAt;
+}
+
 function startAutoSave() {
   stopAutoSave();
   // save immediately and then every 10s
@@ -1545,27 +1959,17 @@ function scheduleSaveDraft() {
 }
 
 function attachDraftInputHandlers() {
+  if (draftInputHandler) detachDraftInputHandlers();
   draftInputHandler = function () {
-    try {
-      const draft = {
-        id: editingId,
-        title: titleInput.value || "",
-        body: bodyInput.value || "",
-        tags: tagsInput.value || "",
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    } catch (e) {
-      // ignore
-    }
+    saveDraft();
   };
-  [titleInput, bodyInput, tagsInput].forEach((el) => {
+  [titleInput, bodyInput, tagsInput, reminderInput].forEach((el) => {
     el?.addEventListener('input', draftInputHandler);
   });
 }
 
 function detachDraftInputHandlers() {
-  [titleInput, bodyInput, tagsInput].forEach((el) => {
+  [titleInput, bodyInput, tagsInput, reminderInput].forEach((el) => {
     if (draftInputHandler) el?.removeEventListener('input', draftInputHandler);
   });
   draftInputHandler = null;
@@ -1573,13 +1977,11 @@ function detachDraftInputHandlers() {
 
 function saveDraft() {
   try {
-    const draft = {
-      id: editingId,
-      title: titleInput.value || "",
-      body: bodyInput.value || "",
-      tags: tagsInput.value || "",
-      updatedAt: new Date().toISOString(),
-    };
+    const draft = createDraftSnapshot();
+    if (isDraftEmpty(draft)) {
+      clearDraft();
+      return;
+    }
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   } catch (e) {
     // ignore
@@ -1597,12 +1999,15 @@ function tryRestoreDraftOnLoad() {
     if (!raw || !autosaveEnabled) return;
     const draft = JSON.parse(raw);
     if (!draft) return;
+    if (isDraftEmpty(draft)) return;
     const should = confirm('下書きが見つかりました。編集中の内容を復元しますか？');
     if (!should) return;
     editingId = draft.id || null;
     titleInput.value = draft.title || '';
     bodyInput.value = draft.body || '';
     tagsInput.value = draft.tags || '';
+    if (reminderInput) reminderInput.value = draft.reminderAt || '';
+    saveButton.textContent = editingId ? "更新する" : "保存する";
   } catch {
     // ignore
   }

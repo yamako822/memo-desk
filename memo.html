@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
     <title>Memo Desk | Memos</title>
-    <link rel="manifest" href="manifest.webmanifest?v=2">
+    <link rel="manifest" href="manifest.webmanifest?v=4">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=4">
   </head>
   <body>
     <main id="appScreen" class="app" hidden>
@@ -23,43 +23,29 @@
         <div class="app-header">
           <div>
             <p class="eyebrow">Memo Desk</p>
-            <div class="title-with-help">
-              <h1 id="editor-title">メモを整理する</h1>
-              <button type="button" class="secondary icon-button" id="helpButton" title="ヘルプ" aria-label="使い方の説明" aria-expanded="false">?</button>
-            </div>
+            <h1 id="editor-title">メモを整理する</h1>
           </div>
           <div class="header-actions">
-            <span class="user-badge" id="userGreeting"></span>
-            <form class="username-form" id="usernameForm" novalidate>
-              <label class="visually-hidden" for="usernameInput">ユーザー名</label>
-              <input id="usernameInput" type="text" maxlength="32" autocomplete="nickname" placeholder="ユーザー名">
-              <button type="submit" class="secondary" id="usernameSaveButton">変更</button>
-            </form>
-            <button type="button" class="secondary icon-button" id="settingsButton" title="設定" aria-label="設定">⚙</button>
+            <button type="button" class="secondary icon-button" id="settingsButton" title="設定" aria-label="設定">⚙︎</button>
             <span class="count" id="memoCount">0件</span>
-            <button type="button" class="secondary feedback-button" id="feedbackButton">要望を送る</button>
-            <button type="button" class="secondary" id="logoutButton">ログアウト</button>
           </div>
         </div>
 
         <form id="memoForm" class="memo-form" novalidate>
-          <div class="page-help" id="helpPanel" hidden>
-            <p>Memo Desk は素早くメモを残して整理できるアプリです。基本操作は下記の通りです。</p>
-            <ul>
-              <li>左側の入力欄にタイトル・本文・タグを入力し、<strong>保存する</strong> を押してメモを保存します。</li>
-              <li>メモカードの <strong>開く</strong> で詳細を表示します。カードをダブルクリックしても開けます。</li>
-              <li>カードの <strong>ピン</strong> を使うと一覧の上位に固定表示、<strong>☆</strong> はお気に入りに登録します。</li>
-              <li>検索ボックスでタイトル・本文・タグを横断検索できます。タグボタンで絞り込みも可能です。</li>
-              <li>ログインすればクラウド同期され、別の端末でも同じメモを参照できます。未ログイン時はこのブラウザ内のみの保存です。</li>
-            </ul>
-            <p class="muted">補足: 自動下書き保存を有効にすると編集中の内容を一定間隔で保存します（オフにしている場合は明示的に保存してください）。</p>
-          </div>
           <p class="form-error" id="formError" hidden></p>
           <input id="memoTitle" type="text" maxlength="120" placeholder="タイトル" autocomplete="off" aria-required="true">
           <textarea id="memoBody" rows="8" maxlength="10000" placeholder="本文を書いてください" aria-required="true"></textarea>
-          <input id="memoTags" type="text" maxlength="260" placeholder="タグ（例: 勉強, アイデア）" autocomplete="off">
+          <div class="tag-input-row">
+            <input id="memoTags" type="text" maxlength="260" placeholder="タグ（例: 勉強, アイデア）" autocomplete="off">
+            <button type="button" class="secondary" id="autoTagButton">自動タグ</button>
+          </div>
           <div id="tagSuggestList" class="tag-suggest-list" style="display:none;max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;background:var(--field);margin-top:4px;">
           </div>
+          <p class="auto-tag-status" id="autoTagStatus" aria-live="polite" hidden></p>
+          <label class="reminder-control" for="memoReminder">
+            <span>リマインダー</span>
+            <input id="memoReminder" type="datetime-local">
+          </label>
           <div class="form-actions">
             <button type="button" class="secondary" id="clearButton">クリア</button>
             <button type="submit" id="saveButton">保存する</button>
@@ -71,6 +57,7 @@
         <div class="toolbar">
           <h2 id="library-title">メモ一覧</h2>
           <div class="toolbar-actions">
+            <button type="button" class="secondary" id="newMemoButton">新規</button>
             <button type="button" class="secondary favorite-filter-button" id="favoriteFilterButton" aria-pressed="false" aria-label="お気に入りフィルター">☆</button>
             <label class="visually-hidden" for="sortSelect">並び替え</label>
             <select id="sortSelect" aria-label="並び替え">
@@ -103,6 +90,7 @@
             <button type="button" class="favorite-button" aria-pressed="false" aria-label="お気に入りに追加">☆</button>
           </div>
         </div>
+        <p class="memo-reminder" hidden></p>
         <div class="memo-preview">
           <p class="memo-body"></p>
         </div>
@@ -126,6 +114,7 @@
           <button type="button" class="secondary icon-close-button" id="memoDialogCloseButton" aria-label="閉じる">×</button>
         </div>
         <div class="memo-dialog-body" id="memoDialogBody"></div>
+        <p class="memo-dialog-reminder" id="memoDialogReminder" hidden></p>
         <div class="memo-tags" id="memoDialogTags"></div>
         <div class="card-actions">
           <button type="button" class="secondary" id="memoDialogPinButton">ピン留め</button>
@@ -143,6 +132,18 @@
           <button type="button" class="secondary icon-close-button" id="settingsDialogCloseButton" aria-label="閉じる">×</button>
         </div>
         <div class="settings-dialog-body">
+          <div class="settings-section">
+            <h3>アカウント</h3>
+            <div class="settings-account">
+              <span class="user-badge" id="userGreeting"></span>
+              <form class="username-form" id="usernameForm" novalidate>
+                <label class="visually-hidden" for="usernameInput">ユーザー名</label>
+                <input id="usernameInput" type="text" maxlength="32" autocomplete="nickname" placeholder="ユーザー名">
+                <button type="submit" class="secondary" id="usernameSaveButton">変更</button>
+              </form>
+            </div>
+          </div>
+
           <div class="settings-section">
             <h3>表示設定</h3>
             <div class="display-settings" aria-label="表示設定">
@@ -170,25 +171,64 @@
           <div class="settings-section">
             <h3>カスタムカラー</h3>
             <p class="muted">アプリのカラーをカスタマイズできます。リセットボタンで初期値に戻します。</p>
-            <div class="color-settings" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
-              <label style="display:flex;flex-direction:column;gap:4px;">
+            <div class="color-settings">
+              <label>
                 <span>アクセントカラー</span>
-                <input id="accentColorInput" type="color" value="#0f766e" style="width:100%;height:40px;cursor:pointer;border:1px solid var(--line);border-radius:4px;">
+                <input id="accentColorInput" type="color" value="#0f766e">
               </label>
-              <label style="display:flex;flex-direction:column;gap:4px;">
+              <label>
                 <span>背景色</span>
-                <input id="bgColorInput" type="color" value="#f7f5f0" style="width:100%;height:40px;cursor:pointer;border:1px solid var(--line);border-radius:4px;">
+                <input id="bgColorInput" type="color" value="#f7f5f0">
               </label>
-              <label style="display:flex;flex-direction:column;gap:4px;">
+              <label>
                 <span>本文色</span>
-                <input id="textColorInput" type="color" value="#202124" style="width:100%;height:40px;cursor:pointer;border:1px solid var(--line);border-radius:4px;">
+                <input id="textColorInput" type="color" value="#202124">
               </label>
-              <label style="display:flex;flex-direction:column;gap:4px;">
+              <label>
                 <span>カード背景</span>
-                <input id="cardBgColorInput" type="color" value="#fffefb" style="width:100%;height:40px;cursor:pointer;border:1px solid var(--line);border-radius:4px;">
+                <input id="cardBgColorInput" type="color" value="#fffefb">
               </label>
             </div>
             <button type="button" class="secondary" id="colorResetButton" style="margin-top:8px;">カラーをリセット</button>
+          </div>
+
+          <div class="settings-section">
+            <h3>表示</h3>
+            <p class="muted">メモ一覧の表示形式を変更できます。</p>
+            <div class="layout-settings">
+              <label class="switch-control">
+                <input id="layoutGridRadio" type="radio" name="layout" value="grid">
+                <span>グリッド表示</span>
+              </label>
+              <label class="switch-control">
+                <input id="layoutListRadio" type="radio" name="layout" value="list">
+                <span>リスト表示</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>ヘルプ</h3>
+            <button type="button" class="secondary icon-button" id="helpButton" title="ヘルプ" aria-label="使い方の説明" aria-expanded="false">?</button>
+            <div class="page-help" id="helpPanel" hidden>
+              <p>Memo Desk は素早くメモを残して整理できるアプリです。基本操作は下記の通りです。</p>
+              <ul>
+                <li>左側の入力欄にタイトル・本文・タグを入力し、<strong>保存する</strong> を押してメモを保存します。</li>
+                <li>メモカードの <strong>開く</strong> で詳細を表示します。カードをダブルクリックしても開けます。</li>
+                <li>カードの <strong>ピン</strong> を使うと一覧の上位に固定表示、<strong>☆</strong> はお気に入りに登録します。</li>
+                <li>検索ボックスでタイトル・本文・タグを横断検索できます。タグボタンで絞り込みも可能です。</li>
+                <li>ログインすればクラウド同期され、別の端末でも同じメモを参照できます。未ログイン時はこのブラウザ内のみの保存です。</li>
+              </ul>
+              <p class="muted">補足: 自動下書き保存を有効にすると編集中の内容を一定間隔で保存します（オフにしている場合は明示的に保存してください）。</p>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>その他</h3>
+            <div class="settings-actions">
+              <button type="button" class="secondary feedback-button" id="feedbackButton">要望を送る</button>
+              <button type="button" class="secondary" id="logoutButton">ログアウト</button>
+            </div>
           </div>
 
           <div class="settings-section">
@@ -214,7 +254,7 @@
       </article>
     </div>
 
-    <script type="module" src="app.js?v=2"></script>
-    <script src="pwa.js?v=2"></script>
+    <script type="module" src="app.js?v=4"></script>
+    <script src="pwa.js?v=4"></script>
   </body>
 </html>

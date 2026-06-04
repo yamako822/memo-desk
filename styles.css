@@ -22,6 +22,8 @@
   --pin: #5c4a99;
   --pin-bg: #f0edff;
   --pin-line: #9b8ee5;
+  --icon-foreground: var(--text);
+  --icon-surface-hover: var(--soft);
   --shadow: 0 18px 45px rgba(31, 41, 55, 0.12);
   --app-brightness: 100%;
 }
@@ -50,6 +52,8 @@
   --pin: #c9c1ff;
   --pin-bg: #2c2748;
   --pin-line: #8574dd;
+  --icon-foreground: #f8fbfa;
+  --icon-surface-hover: #263632;
   --shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
 }
 
@@ -248,8 +252,8 @@ label {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  min-width: 260px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .user-badge {
@@ -342,15 +346,20 @@ p {
 }
 
 h1 {
-  font-size: 28px;
-  line-height: 1.25;
+  font-size: 24px;
+  line-height: 1.2;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 h2 {
-  font-size: 24px;
-  line-height: 1.25;
+  font-size: 21px;
+  line-height: 1.2;
   font-weight: 700;
+}
+
+#library-title {
+  white-space: nowrap;
 }
 
 .count {
@@ -399,6 +408,29 @@ select {
 textarea {
   min-height: 220px;
   resize: vertical;
+}
+
+.tag-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.tag-input-row button {
+  white-space: nowrap;
+}
+
+.auto-tag-status {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.reminder-control {
+  display: grid;
+  gap: 6px;
 }
 
 input:focus,
@@ -540,6 +572,72 @@ button:hover {
   align-items: start;
 }
 
+.memo-list.list-view {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.memo-list.list-view .memo-card {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.75fr) minmax(0, 1.4fr) minmax(120px, 0.75fr) auto;
+  grid-template-areas:
+    "header preview tags actions"
+    "header reminder tags actions";
+  align-items: center;
+  gap: 12px;
+  min-height: auto;
+  max-height: none;
+  padding: 12px;
+}
+
+.memo-list.list-view .memo-card-header {
+  grid-area: header;
+  min-width: 0;
+}
+
+.memo-list.list-view .memo-card-title {
+  min-width: 0;
+}
+
+.memo-list.list-view .memo-card-title h3 {
+  margin: 0;
+  -webkit-line-clamp: 1;
+}
+
+.memo-list.list-view .memo-preview {
+  grid-area: preview;
+  flex: 1;
+  min-height: 0;
+}
+
+.memo-list.list-view .memo-preview::after {
+  display: none;
+}
+
+.memo-list.list-view .memo-body {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+.memo-list.list-view .memo-reminder {
+  grid-area: reminder;
+  margin: 0;
+}
+
+.memo-list.list-view .memo-tags {
+  grid-area: tags;
+  max-height: 34px;
+}
+
+.memo-list.list-view .card-actions {
+  grid-area: actions;
+  flex-shrink: 0;
+  flex-direction: row;
+  gap: 6px;
+}
+
 .pagination {
   display: flex;
   align-items: center;
@@ -572,7 +670,7 @@ button:hover {
 
 .memo-card {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 12px;
   min-height: 280px;
   max-height: 280px;
@@ -683,6 +781,27 @@ time {
   line-height: 1.35;
 }
 
+.memo-reminder,
+.memo-dialog-reminder {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--soft);
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.memo-reminder[data-state="due"],
+.memo-dialog-reminder[data-state="due"] {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
 .pin-button,
 .favorite-button {
   flex: 0 0 auto;
@@ -756,7 +875,8 @@ time {
   grid-template-rows: auto 1fr;
   gap: 12px;
   width: min(520px, 100%);
-  max-height: min(640px, calc(100dvh - 48px));
+  max-height: min(720px, calc(100dvh - 32px));
+  min-height: 0;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -769,10 +889,22 @@ time {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
 .settings-dialog-body {
-  padding-top: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 6px 2px 0;
+  scrollbar-gutter: stable;
+}
+
+.settings-dialog-body,
+.settings-dialog-body * {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .settings-section h3 {
@@ -803,8 +935,67 @@ time {
 
 .settings-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.settings-account {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.color-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.color-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.color-settings input {
+  height: 40px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.layout-settings {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.layout-settings .switch-control {
+  flex: 1;
+  margin: 0;
+}
+
+.page-help {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.page-help[hidden] {
+  display: none;
+}
+
+.page-help ul {
+  margin: 0 0 0 18px;
+  padding: 0;
 }
 
 .settings-dialog-panel .danger {
@@ -817,7 +1008,48 @@ time {
   padding: 0;
   display: grid;
   place-items: center;
+  color: var(--icon-foreground);
+  -webkit-text-fill-color: currentColor;
+  font-family: "Segoe UI Symbol", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
   font-size: 18px;
+}
+
+.icon-button:hover {
+  background: var(--icon-surface-hover);
+  color: var(--icon-foreground);
+}
+
+.favorite-filter-button,
+.favorite-button {
+  -webkit-text-fill-color: currentColor;
+  font-family: "Segoe UI Symbol", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+}
+
+:root[data-theme="dark"] .secondary,
+:root[data-theme="dark"] .tag-filter button,
+:root[data-theme="dark"] .pagination button {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .icon-close-button {
+  border-color: var(--line);
+  background: var(--field);
+  color: var(--icon-foreground);
+}
+
+:root[data-theme="dark"] .icon-button:hover,
+:root[data-theme="dark"] .icon-close-button:hover {
+  background: var(--icon-surface-hover);
+  color: var(--icon-foreground);
+}
+
+:root[data-theme="dark"] .favorite-filter-button {
+  color: var(--favorite);
+}
+
+:root[data-theme="dark"] .favorite-filter-button.active {
+  color: var(--favorite-dark);
 }
 
 .brightness-row {
@@ -868,7 +1100,7 @@ time {
 
 .memo-dialog-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   gap: 16px;
   width: min(720px, 100%);
   max-height: min(780px, calc(100dvh - 48px));
@@ -903,6 +1135,8 @@ time {
   width: 36px;
   height: 36px;
   padding: 0;
+  color: var(--icon-foreground);
+  -webkit-text-fill-color: currentColor;
   font-size: 22px;
   line-height: 1;
 }
@@ -981,5 +1215,25 @@ time {
 
   .display-settings {
     grid-template-columns: 1fr;
+  }
+
+  .tag-input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .memo-list.list-view .memo-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "preview"
+      "reminder"
+      "tags"
+      "actions";
+    align-items: stretch;
+  }
+
+  .memo-list.list-view .card-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }

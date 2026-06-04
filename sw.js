@@ -1,4 +1,4 @@
-const CACHE = "memo-desk-v16";
+const CACHE = "memo-desk-v18";
 
 const ASSETS = [
   "./",
@@ -32,6 +32,25 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const networkFirstDestinations = new Set(["document", "script", "style", "manifest"]);
+  const shouldUseNetworkFirst =
+    event.request.mode === "navigate" || networkFirstDestinations.has(event.request.destination);
+
+  if (shouldUseNetworkFirst) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
