@@ -36,6 +36,7 @@ const form = document.querySelector("#memoForm");
 const titleInput = document.querySelector("#memoTitle");
 const bodyInput = document.querySelector("#memoBody");
 const tagsInput = document.querySelector("#memoTags");
+const tagSuggestList = document.querySelector("#tagSuggestList");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const memoList = document.querySelector("#memoList");
@@ -168,6 +169,66 @@ function applyCustomColors(colors) {
   if (bgColorInput) bgColorInput.value = colors.bg;
   if (textColorInput) textColorInput.value = colors.text;
   if (cardBgColorInput) cardBgColorInput.value = colors.cardBg;
+}
+
+function getPopularTags() {
+  const tagCounts = {};
+  memos.forEach((memo) => {
+    let tags = [];
+    if (Array.isArray(memo.tags)) {
+      tags = memo.tags;
+    } else if (typeof memo.tags === 'string') {
+      tags = memo.tags.split(",").map((t) => t.trim()).filter((t) => t);
+    }
+    tags.forEach((tag) => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([tag]) => tag);
+}
+
+function showTagSuggestions() {
+  if (!tagSuggestList || !tagsInput) return;
+  const currentTags = tagsInput.value.split(",").map((t) => t.trim()).filter((t) => t);
+  const lastTag = currentTags[currentTags.length - 1] || "";
+  const popularTags = getPopularTags();
+  const filtered = popularTags.filter(
+    (tag) => tag.toLowerCase().includes(lastTag.toLowerCase()) && !currentTags.includes(tag)
+  );
+  tagSuggestList.innerHTML = "";
+  if (filtered.length > 0) {
+    filtered.forEach((tag) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = tag;
+      btn.style.cssText = "display:block;width:100%;padding:8px 12px;text-align:left;border:none;background:transparent;cursor:pointer;color:var(--text);border-bottom:1px solid var(--soft);font-size:14px;";
+      btn.addEventListener("mouseover", () => {
+        btn.style.background = "var(--soft)";
+      });
+      btn.addEventListener("mouseout", () => {
+        btn.style.background = "transparent";
+      });
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const tags = tagsInput.value.split(",").map((t) => t.trim()).filter((t) => t);
+        tags[tags.length - 1] = tag;
+        tagsInput.value = tags.join(", ") + ", ";
+        tagsInput.focus();
+        showTagSuggestions();
+      });
+      tagSuggestList.appendChild(btn);
+    });
+    tagSuggestList.style.display = filtered.length > 0 ? "block" : "none";
+  } else {
+    tagSuggestList.style.display = "none";
+  }
+}
+
+function hideTagSuggestions() {
+  if (tagSuggestList) tagSuggestList.style.display = "none";
 }
 
 let displaySettings = readDisplaySettings();
@@ -1249,6 +1310,15 @@ function bindMemoPage() {
     saveDisplaySettings();
   });
   clearButton.addEventListener("click", resetForm);
+
+  // Tag suggestion handlers
+  if (tagsInput) {
+    tagsInput.addEventListener("focus", showTagSuggestions);
+    tagsInput.addEventListener("input", showTagSuggestions);
+    tagsInput.addEventListener("blur", () => {
+      setTimeout(hideTagSuggestions, 100);
+    });
+  }
 
   memoDialogCloseButton.addEventListener("click", closeMemoDialog);
   memoDialog.addEventListener("click", (event) => {

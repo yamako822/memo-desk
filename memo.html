@@ -58,6 +58,8 @@
           <input id="memoTitle" type="text" maxlength="120" placeholder="タイトル" autocomplete="off" aria-required="true">
           <textarea id="memoBody" rows="8" maxlength="10000" placeholder="本文を書いてください" aria-required="true"></textarea>
           <input id="memoTags" type="text" maxlength="260" placeholder="タグ（例: 勉強, アイデア）" autocomplete="off">
+          <div id="tagSuggestList" class="tag-suggest-list" style="display:none;max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;background:var(--field);margin-top:4px;">
+          </div>
           <div class="form-actions">
             <button type="button" class="secondary" id="clearButton">クリア</button>
             <button type="submit" id="saveButton">保存する</button>
