@@ -240,4 +240,27 @@ test.describe('Memo Desk E2E', () => {
     await expect(page.locator('#tagFilterButton')).toHaveText('タグ絞り込み');
     await expect(page.locator('.memo-card')).toHaveCount(2);
   });
+
+  test('tag filter button stays horizontal on desktop', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto('/memo.html');
+    await page.waitForSelector('#tagFilterButton');
+
+    const buttonStyle = await page.locator('#tagFilterButton').evaluate((button) => {
+      const style = getComputedStyle(button);
+      const box = button.getBoundingClientRect();
+      return {
+        writingMode: style.writingMode,
+        whiteSpace: style.whiteSpace,
+        wordBreak: style.wordBreak,
+        width: box.width,
+        height: box.height
+      };
+    });
+
+    expect(buttonStyle.writingMode).toBe('horizontal-tb');
+    expect(buttonStyle.whiteSpace).toBe('nowrap');
+    expect(buttonStyle.wordBreak).toBe('keep-all');
+    expect(buttonStyle.width).toBeGreaterThan(buttonStyle.height);
+  });
 });
