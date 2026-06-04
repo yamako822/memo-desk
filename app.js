@@ -9,6 +9,7 @@ const LOCAL_MODE_KEY = "memo-desk-local-mode";
 const LOCAL_ENTRY_KEY = "memo-desk-local-entry";
 const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
 const LOCAL_DISPLAY_NAME_KEY = "memo-desk-local-display-name";
+const DRAFT_KEY = "memo-desk-draft";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
@@ -58,6 +59,16 @@ const memoDialogPinButton = document.querySelector("#memoDialogPinButton");
 const memoDialogFavoriteButton = document.querySelector("#memoDialogFavoriteButton");
 const memoDialogEditButton = document.querySelector("#memoDialogEditButton");
 const memoDialogDeleteButton = document.querySelector("#memoDialogDeleteButton");
+const settingsButton = document.querySelector("#settingsButton");
+const settingsDialog = document.querySelector("#settingsDialog");
+const settingsDialogCloseButton = document.querySelector("#settingsDialogCloseButton");
+const autoSaveToggle = document.querySelector("#autoSaveToggle");
+const settingsClearLocalButton = document.querySelector("#settingsClearLocalButton");
+const brightnessResetButton = document.querySelector("#brightnessResetButton");
+const confirmDialog = document.querySelector("#confirmDialog");
+const confirmCancel = document.querySelector("#confirmCancel");
+const confirmOk = document.querySelector("#confirmOk");
+const confirmDialogMessage = document.querySelector('#confirmDialogMessage');
 
 const isLoginPage = Boolean(loginScreen);
 const isMemoPage = Boolean(appScreen);
@@ -115,6 +126,11 @@ function readDisplaySettings() {
 }
 
 let displaySettings = readDisplaySettings();
+let autoSaveIntervalId = null;
+let autoSaveDebounceTimer = null;
+let draftInputHandler = null;
+let confirmAction = null;
+let pendingDeleteMemoId = null;
 
 async function loadFirebaseModules() {
   if (initializeApp) return;
@@ -903,22 +919,48 @@ async function deleteMemo(id) {
   const memo = memos.find((item) => item.id === id);
   if (!memo || !currentUser) return;
 
-  const ok = confirm(`「${memo.title}」を削除しますか？`);
-  if (!ok) return;
-
-  try {
-    if (dataMode === "local") {
-      memos = memos.filter((item) => item.id !== id);
-      saveLocalMemos();
-      render();
-    } else {
-      await deleteDoc(memoDocRef(currentUser.uid, id));
+  if (!confirmDialog || !confirmDialogMessage) {
+    // fallback to native confirm
+    const ok = confirm(`「${memo.title}」を削除しますか？`);
+    if (!ok) return;
+    try {
+      if (dataMode === 'local') {
+        memos = memos.filter((item) => item.id !== id);
+        saveLocalMemos();
+        render();
+      } else {
+        await deleteDoc(memoDocRef(currentUser.uid, id));
+      }
+      if (openMemoId === id) closeMemoDialog();
+      if (editingId === id) resetForm();
+    } catch {
+      showFormError('削除に失敗しました。');
     }
-    if (openMemoId === id) closeMemoDialog();
-    if (editingId === id) resetForm();
-  } catch {
-    showFormError("削除に失敗しました。");
+    return;
   }
+
+  // open custom confirm dialog
+  confirmDialogMessage.textContent = `「${memo.title}」を削除しますか？`;
+  confirmAction = async () => {
+    try {
+      if (dataMode === 'local') {
+        memos = memos.filter((item) => item.id !== id);
+        saveLocalMemos();
+        render();
+      } else {
+        await deleteDoc(memoDocRef(currentUser.uid, id));
+      }
+      if (openMemoId === id) closeMemoDialog();
+      if (editingId === id) resetForm();
+    } catch (e) {
+      console.error(e);
+      showFormError('削除に失敗しました。');
+    }
+  };
+  pendingDeleteMemoId = id;
+  confirmDialog.hidden = false;
+  document.body.classList.add('dialog-open');
+  confirmCancel?.focus();
 }
 
 async function saveMemo(memo) {
@@ -1166,6 +1208,27 @@ function bindMemoPage() {
   memoDialog.addEventListener("click", (event) => {
     if (event.target === memoDialog) closeMemoDialog();
   });
+  if (settingsButton && settingsDialog) {
+    settingsButton.addEventListener("click", () => {
+      settingsDialog.hidden = false;
+      document.body.classList.add("dialog-open");
+      settingsDialogCloseButton?.focus();
+    });
+
+    settingsDialogCloseButton?.addEventListener("click", () => {
+      settingsDialog.hidden = true;
+      document.body.classList.remove("dialog-open");
+      settingsButton.focus();
+    });
+
+    settingsDialog.addEventListener("click", (event) => {
+      if (event.target === settingsDialog) {
+        settingsDialog.hidden = true;
+        document.body.classList.remove("dialog-open");
+        settingsButton.focus();
+      }
+    });
+  }
   memoDialogFavoriteButton.addEventListener("click", () => {
     if (openMemoId) toggleFavoriteMemo(openMemoId);
   });
@@ -1179,8 +1242,105 @@ function bindMemoPage() {
     if (openMemoId) deleteMemo(openMemoId);
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeMemoDialog();
+    if (event.key === "Escape") {
+      if (memoDialog && !memoDialog.hidden) {
+        closeMemoDialog();
+        return;
+      }
+      if (settingsDialog && !settingsDialog.hidden) {
+        settingsDialog.hidden = true;
+        document.body.classList.remove("dialog-open");
+        settingsButton?.focus();
+      }
+    }
   });
+
+  // Initialize auto-save toggle and behavior
+  try {
+    const savedAuto = localStorage.getItem("memo-desk-autosave");
+    if (autoSaveToggle) autoSaveToggle.checked = savedAuto === "true";
+    autoSaveToggle?.addEventListener("change", () => {
+      const enabled = autoSaveToggle.checked;
+      localStorage.setItem("memo-desk-autosave", enabled ? "true" : "false");
+      if (enabled) {
+        startAutoSave();
+        attachDraftInputHandlers();
+      } else {
+        stopAutoSave();
+        detachDraftInputHandlers();
+      }
+    });
+    if (autoSaveToggle?.checked) { startAutoSave(); attachDraftInputHandlers(); }
+  } catch {
+    // ignore
+  }
+
+  // Brightness reset
+  if (brightnessResetButton) {
+    brightnessResetButton.addEventListener("click", () => {
+      displaySettings.brightness = 100;
+      applyDisplaySettings();
+      saveDisplaySettings();
+    });
+  }
+
+  // Clear local data handler: open confirm dialog
+  if (settingsClearLocalButton) {
+    settingsClearLocalButton.addEventListener("click", () => {
+      if (!confirmDialog || !confirmDialogMessage) return;
+      confirmDialogMessage.textContent = 'このブラウザに保存されたローカルデータを削除します。よろしいですか？';
+      confirmAction = async () => {
+        try {
+          localStorage.removeItem(LOCAL_MEMOS_KEY);
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+          localStorage.removeItem(DRAFT_KEY);
+          memos = loadLocalMemos();
+          render();
+          alert('ローカルデータを削除しました。');
+        } catch (error) {
+          console.error(error);
+          alert('ローカルデータの削除に失敗しました。コンソールを確認してください。');
+        }
+      };
+      confirmDialog.hidden = false;
+      document.body.classList.add('dialog-open');
+      confirmCancel?.focus();
+    });
+  }
+
+  if (confirmCancel) {
+    confirmCancel.addEventListener("click", () => {
+      if (!confirmDialog) return;
+      confirmDialog.hidden = true;
+      document.body.classList.remove('dialog-open');
+      confirmAction = null;
+      pendingDeleteMemoId = null;
+      settingsClearLocalButton?.focus();
+    });
+  }
+
+  if (confirmOk) {
+    confirmOk.addEventListener('click', async () => {
+      try {
+        if (typeof confirmAction === 'function') {
+          await confirmAction();
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!confirmDialog) return;
+        confirmDialog.hidden = true;
+        document.body.classList.remove('dialog-open');
+        confirmAction = null;
+        // if it was a memo deletion, clear selection and re-render
+        if (pendingDeleteMemoId) pendingDeleteMemoId = null;
+        settingsClearLocalButton?.focus();
+      }
+    });
+  }
+
+  // Try restoring draft if present and autosave enabled
+  tryRestoreDraftOnLoad();
 
   applyDisplaySettings();
 }
@@ -1188,3 +1348,97 @@ function bindMemoPage() {
 if (isLoginPage) bindLoginPage();
 if (isMemoPage) bindMemoPage();
 initFirebase();
+
+// Auto-save and draft helpers
+function startAutoSave() {
+  stopAutoSave();
+  // save immediately and then every 10s
+  saveDraft();
+  autoSaveIntervalId = setInterval(() => saveDraft(), 10000);
+}
+
+function stopAutoSave() {
+  if (autoSaveIntervalId) {
+    clearInterval(autoSaveIntervalId);
+    autoSaveIntervalId = null;
+  }
+}
+
+function scheduleSaveDraft() {
+  if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
+  autoSaveDebounceTimer = setTimeout(() => saveDraft(), 1000);
+}
+
+function attachDraftInputHandlers() {
+  draftInputHandler = function () {
+    try {
+      const draft = {
+        id: editingId,
+        title: titleInput.value || "",
+        body: bodyInput.value || "",
+        tags: tagsInput.value || "",
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch (e) {
+      // ignore
+    }
+  };
+  [titleInput, bodyInput, tagsInput].forEach((el) => {
+    el?.addEventListener('input', draftInputHandler);
+  });
+}
+
+function detachDraftInputHandlers() {
+  [titleInput, bodyInput, tagsInput].forEach((el) => {
+    if (draftInputHandler) el?.removeEventListener('input', draftInputHandler);
+  });
+  draftInputHandler = null;
+}
+
+function saveDraft() {
+  try {
+    const draft = {
+      id: editingId,
+      title: titleInput.value || "",
+      body: bodyInput.value || "",
+      tags: tagsInput.value || "",
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch (e) {
+    // ignore
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+}
+
+function tryRestoreDraftOnLoad() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    const autosaveEnabled = localStorage.getItem('memo-desk-autosave') === 'true';
+    if (!raw || !autosaveEnabled) return;
+    const draft = JSON.parse(raw);
+    if (!draft) return;
+    const should = confirm('下書きが見つかりました。編集中の内容を復元しますか？');
+    if (!should) return;
+    editingId = draft.id || null;
+    titleInput.value = draft.title || '';
+    bodyInput.value = draft.body || '';
+    tagsInput.value = draft.tags || '';
+  } catch {
+    // ignore
+  }
+}
+
+// Expose helpers for testing/debugging
+try {
+  window.saveDraft = saveDraft;
+  window.startAutoSave = startAutoSave;
+  window.attachDraftInputHandlers = attachDraftInputHandlers;
+  window.detachDraftInputHandlers = detachDraftInputHandlers;
+} catch (e) {
+  // ignore in restricted contexts
+}

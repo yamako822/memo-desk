@@ -735,6 +735,133 @@ time {
   background: rgba(17, 23, 21, 0.52);
 }
 
+.settings-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  width: 100vw;
+  min-height: 100dvh;
+  background: rgba(17, 23, 21, 0.52);
+}
+
+.settings-dialog-backdrop[hidden] {
+  display: none;
+}
+
+.settings-dialog-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  width: min(520px, 100%);
+  max-height: min(640px, calc(100dvh - 48px));
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.settings-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-dialog-body {
+  padding-top: 6px;
+}
+
+.settings-section h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.settings-section p.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.settings-section ul {
+  margin: 8px 0 0 18px;
+  color: var(--text);
+}
+
+.settings-section {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-dialog-panel .danger {
+  padding: 9px 12px;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.brightness-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.danger {
+  background: var(--danger);
+  color: white;
+  border-color: transparent;
+}
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  width: 100vw;
+  min-height: 100dvh;
+  background: rgba(17, 23, 21, 0.6);
+}
+
+.confirm-backdrop[hidden] { display: none; }
+
+.confirm-panel {
+  width: min(520px, 100%);
+  padding: 18px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 .memo-dialog-backdrop[hidden] {
   display: none;
 }

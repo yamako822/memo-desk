@@ -32,6 +32,7 @@
               <input id="usernameInput" type="text" maxlength="32" autocomplete="nickname" placeholder="ユーザー名">
               <button type="submit" class="secondary" id="usernameSaveButton">変更</button>
             </form>
+            <button type="button" class="secondary icon-button" id="settingsButton" title="設定" aria-label="設定">⚙</button>
             <span class="count" id="memoCount">0件</span>
             <button type="button" class="secondary feedback-button" id="feedbackButton">要望を送る</button>
             <button type="button" class="secondary" id="logoutButton">ログアウト</button>
@@ -66,17 +67,7 @@
           </div>
         </div>
 
-        <div class="display-settings" aria-label="表示設定">
-          <label class="switch-control">
-            <input id="darkModeToggle" type="checkbox">
-            <span>ダークモード</span>
-          </label>
-          <label class="brightness-control" for="brightnessInput">
-            <span>明るさ</span>
-            <strong id="brightnessValue">100%</strong>
-          </label>
-          <input id="brightnessInput" type="range" min="80" max="120" step="5" value="100">
-        </div>
+        <!-- 表示設定は設定ポップアップ内に移動しました -->
 
         <div class="tag-filter" id="tagFilter" aria-label="タグで絞り込み"></div>
         <div class="memo-list" id="memoList"></div>
@@ -125,6 +116,73 @@
           <button type="button" class="secondary" id="memoDialogFavoriteButton">お気に入り</button>
           <button type="button" class="secondary" id="memoDialogEditButton">編集</button>
           <button type="button" class="danger" id="memoDialogDeleteButton">削除</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="settings-dialog-backdrop" id="settingsDialog" role="dialog" aria-modal="true" aria-labelledby="settingsDialogTitle" hidden>
+      <article class="settings-dialog-panel">
+        <div class="settings-dialog-header">
+          <h2 id="settingsDialogTitle">表示設定</h2>
+          <button type="button" class="secondary icon-close-button" id="settingsDialogCloseButton" aria-label="閉じる">×</button>
+        </div>
+        <div class="settings-dialog-body">
+          <div class="settings-section">
+            <h3>表示設定</h3>
+            <p class="muted">画面のテーマや明るさを変更して、見やすい表示に調整できます。</p>
+            <div class="display-settings" aria-label="表示設定">
+              <label class="switch-control">
+                <input id="darkModeToggle" type="checkbox">
+                <span>ダークモード（夜間は目に優しい表示）</span>
+              </label>
+              <label class="brightness-control" for="brightnessInput">
+                <span>明るさ</span>
+                <strong id="brightnessValue">100%</strong>
+              </label>
+              <div class="brightness-row">
+                <input id="brightnessInput" type="range" min="80" max="120" step="5" value="100">
+                <button type="button" class="secondary" id="brightnessResetButton">リセット</button>
+              </div>
+            </div>
+            <div class="misc-setting" style="margin-top:12px;">
+              <label class="switch-control">
+                <input id="autoSaveToggle" type="checkbox">
+                <span>自動下書き保存（編集中の内容を一定間隔で保存します）</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>データ</h3>
+            <p class="muted">この操作はこのブラウザ内に保存されたローカルメモを完全に削除します。クラウド同期（ログイン済み）を利用中のメモには影響しません。</p>
+            <div class="settings-actions" style="margin-top:8px;">
+              <button type="button" class="danger" id="settingsClearLocalButton">ローカルデータを削除</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>使い方（簡単ガイド）</h3>
+            <p>Memo Desk は素早くメモを残して整理できるアプリです。基本操作は下記の通りです。</p>
+            <ul>
+              <li>左側の入力欄にタイトル・本文・タグを入力し、<strong>保存する</strong> を押してメモを保存します。</li>
+              <li>メモカードの <strong>開く</strong> で詳細を表示します。カードをダブルクリックしても開けます。</li>
+              <li>カードの <strong>ピン</strong> を使うと一覧の上位に固定表示、<strong>☆</strong> はお気に入りに登録します。</li>
+              <li>検索ボックスでタイトル・本文・タグを横断検索できます。タグボタンで絞り込みも可能です。</li>
+              <li>ログインすればクラウド同期され、別の端末でも同じメモを参照できます。未ログイン時はこのブラウザ内のみの保存です。</li>
+            </ul>
+            <p class="muted">補足: 自動下書き保存を有効にすると編集中の内容を一定間隔で保存します（オフにしている場合は明示的に保存してください）。</p>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="confirm-backdrop" id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmDialogTitle" hidden>
+      <article class="confirm-panel">
+        <h3 id="confirmDialogTitle">データ削除の確認</h3>
+        <p id="confirmDialogMessage">このブラウザに保存されたローカルデータを削除します。よろしいですか？</p>
+        <div class="confirm-actions">
+          <button type="button" class="secondary" id="confirmCancel">キャンセル</button>
+          <button type="button" class="danger" id="confirmOk">削除する</button>
         </div>
       </article>
     </div>
