@@ -46,6 +46,10 @@ const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const memoList = document.querySelector("#memoList");
 const memoCount = document.querySelector("#memoCount");
+const tagFilterButton = document.querySelector("#tagFilterButton");
+const tagFilterDialog = document.querySelector("#tagFilterDialog");
+const tagFilterDialogCloseButton = document.querySelector("#tagFilterDialogCloseButton");
+const tagFilterStatus = document.querySelector("#tagFilterStatus");
 const tagFilter = document.querySelector("#tagFilter");
 const pagination = document.querySelector("#pagination");
 const favoriteFilterButton = document.querySelector("#favoriteFilterButton");
@@ -878,7 +882,7 @@ function enterLocalApp() {
   };
   if (appScreen) appScreen.hidden = false;
   updateUserDisplay(currentUser);
-  if (logoutButton) logoutButton.textContent = useLocalOnlyEntry() ? "入口へ戻る" : "モード選択へ";
+  if (logoutButton) logoutButton.textContent = useLocalOnlyEntry() ? "ログイン画面に戻る" : "モード選択へ";
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
@@ -1144,6 +1148,16 @@ function renderTags() {
   }
 
   tagFilter.innerHTML = "";
+  if (tagFilterButton) {
+    const label = activeTag === "all" ? "タグ絞り込み" : `タグ: ${activeTag}`;
+    tagFilterButton.textContent = label;
+    tagFilterButton.classList.toggle("active", activeTag !== "all");
+    tagFilterButton.setAttribute("aria-pressed", String(activeTag !== "all"));
+  }
+  if (tagFilterStatus) {
+    tagFilterStatus.textContent =
+      activeTag === "all" ? "すべてのメモを表示中" : `「${activeTag}」で絞り込み中`;
+  }
 
   const allButton = document.createElement("button");
   allButton.type = "button";
@@ -1153,6 +1167,7 @@ function renderTags() {
     activeTag = "all";
     resetPagination();
     render();
+    closeTagFilterDialog();
   });
   tagFilter.append(allButton);
 
@@ -1165,9 +1180,29 @@ function renderTags() {
       activeTag = tag;
       resetPagination();
       render();
+      closeTagFilterDialog();
     });
     tagFilter.append(button);
   });
+}
+
+function openTagFilterDialog() {
+  if (!tagFilterDialog) return;
+  tagFilterDialog.hidden = false;
+  tagFilterButton?.setAttribute("aria-expanded", "true");
+  document.body.classList.add("dialog-open");
+
+  const activeButton = tagFilter.querySelector("button.active");
+  activeButton?.focus();
+  if (!activeButton) tagFilterDialogCloseButton?.focus();
+}
+
+function closeTagFilterDialog() {
+  if (!tagFilterDialog || tagFilterDialog.hidden) return;
+  tagFilterDialog.hidden = true;
+  tagFilterButton?.setAttribute("aria-expanded", "false");
+  document.body.classList.remove("dialog-open");
+  tagFilterButton?.focus();
 }
 
 function renderMemos() {
@@ -1670,6 +1705,11 @@ function bindMemoPage() {
     resetPagination();
     render();
   });
+  tagFilterButton?.addEventListener("click", openTagFilterDialog);
+  tagFilterDialogCloseButton?.addEventListener("click", closeTagFilterDialog);
+  tagFilterDialog?.addEventListener("click", (event) => {
+    if (event.target === tagFilterDialog) closeTagFilterDialog();
+  });
   darkModeToggle.addEventListener("change", () => {
     displaySettings.dark = darkModeToggle.checked;
     applyDisplaySettings();
@@ -1761,6 +1801,10 @@ function bindMemoPage() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      if (tagFilterDialog && !tagFilterDialog.hidden) {
+        closeTagFilterDialog();
+        return;
+      }
       if (memoDialog && !memoDialog.hidden) {
         closeMemoDialog();
         return;

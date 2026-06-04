@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
     <title>Memo Desk | Memos</title>
-    <link rel="manifest" href="manifest.webmanifest?v=5">
+    <link rel="manifest" href="manifest.webmanifest?v=6">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
   </head>
   <body>
     <main id="appScreen" class="app" hidden>
@@ -59,6 +59,7 @@
           <div class="toolbar-actions">
             <button type="button" class="secondary" id="newMemoButton">新規</button>
             <button type="button" class="secondary favorite-filter-button" id="favoriteFilterButton" aria-pressed="false" aria-label="お気に入りフィルター">☆</button>
+            <button type="button" class="secondary tag-filter-button" id="tagFilterButton" aria-haspopup="dialog" aria-expanded="false">タグ絞り込み</button>
             <label class="visually-hidden" for="sortSelect">並び替え</label>
             <select id="sortSelect" aria-label="並び替え">
               <option value="updatedDesc">更新が新しい順</option>
@@ -72,7 +73,6 @@
 
         <!-- 表示設定は設定ポップアップ内に移動しました -->
 
-        <div class="tag-filter" id="tagFilter" aria-label="タグで絞り込み"></div>
         <div class="memo-list" id="memoList"></div>
         <nav class="pagination" id="pagination" aria-label="メモ一覧のページ送り"></nav>
       </section>
@@ -122,6 +122,20 @@
           <button type="button" class="secondary" id="memoDialogEditButton">編集</button>
           <button type="button" class="danger" id="memoDialogDeleteButton">削除</button>
         </div>
+      </article>
+    </div>
+
+    <div class="tag-filter-dialog-backdrop" id="tagFilterDialog" role="dialog" aria-modal="true" aria-labelledby="tagFilterDialogTitle" hidden>
+      <article class="tag-filter-dialog-panel">
+        <div class="tag-filter-dialog-header">
+          <div>
+            <p class="eyebrow">Memo Desk</p>
+            <h2 id="tagFilterDialogTitle">タグ絞り込み</h2>
+            <p class="tag-filter-status" id="tagFilterStatus">すべてのメモを表示中</p>
+          </div>
+          <button type="button" class="secondary icon-close-button" id="tagFilterDialogCloseButton" aria-label="閉じる">×</button>
+        </div>
+        <div class="tag-filter" id="tagFilter" aria-label="タグで絞り込み"></div>
       </article>
     </div>
 
@@ -254,7 +268,7 @@
       </article>
     </div>
 
-    <script type="module" src="app.js?v=5"></script>
-    <script src="pwa.js?v=5"></script>
+    <script type="module" src="app.js?v=6"></script>
+    <script src="pwa.js?v=6"></script>
   </body>
 </html>

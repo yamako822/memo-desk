@@ -519,6 +519,12 @@ button:hover {
   color: var(--accent-dark);
 }
 
+.tag-filter-button.active {
+  background: var(--soft-strong);
+  border-color: var(--accent-line);
+  color: var(--accent-dark);
+}
+
 .display-settings {
   display: grid;
   grid-template-columns: auto auto minmax(140px, 220px);
@@ -554,20 +560,69 @@ button:hover {
   accent-color: var(--accent);
 }
 
-.tag-filter {
+.tag-filter-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  width: 100vw;
+  min-height: 100dvh;
+  background: rgba(17, 23, 21, 0.52);
+}
+
+.tag-filter-dialog-backdrop[hidden] {
+  display: none;
+}
+
+.tag-filter-dialog-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  width: min(560px, 100%);
+  max-height: min(620px, calc(100dvh - 48px));
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.tag-filter-dialog-header {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tag-filter-status {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tag-filter {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 8px;
-  margin: 18px 0;
-  min-height: 34px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .tag-filter button {
-  padding: 6px 10px;
+  min-height: 38px;
+  padding: 7px 10px;
   border: 1px solid var(--line);
   background: var(--field);
-  color: var(--muted);
+  color: var(--text);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .tag-filter button.active {

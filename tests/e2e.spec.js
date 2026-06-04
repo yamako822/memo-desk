@@ -126,7 +126,7 @@ test.describe('Memo Desk E2E', () => {
         newMemo: read('#newMemoButton'),
         sort: read('#sortSelect'),
         search: read('#searchInput'),
-        tag: read('#tagFilter button')
+        tag: read('#tagFilterButton')
       };
     });
 
@@ -166,6 +166,10 @@ test.describe('Memo Desk E2E', () => {
   });
 
   test('settings dialog contains moved home controls and scrolls', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('memo-desk-local-entry', 'true');
+    });
+
     await page.goto('/memo.html');
     await page.waitForSelector('#settingsButton');
     await page.click('#settingsButton');
@@ -179,7 +183,7 @@ test.describe('Memo Desk E2E', () => {
 
     await expect(page.locator('#settingsDialog #helpButton')).toBeVisible();
     await expect(page.locator('#settingsDialog #feedbackButton')).toBeVisible();
-    await expect(page.locator('#settingsDialog #logoutButton')).toBeVisible();
+    await expect(page.locator('#settingsDialog #logoutButton')).toHaveText('ログイン画面に戻る');
     await expect(page.locator('#settingsDialog #usernameForm')).toBeVisible();
 
     const scrollState = await page.locator('.settings-dialog-body').evaluate((body) => {
@@ -192,5 +196,48 @@ test.describe('Memo Desk E2E', () => {
 
     expect(scrollState.overflowY).toBe('auto');
     expect(scrollState.canScroll).toBeTruthy();
+  });
+
+  test('tag filter opens dialog and filters by selected tag', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('memo-desk-local-memos', JSON.stringify([
+        {
+          id: 'tag-1',
+          title: 'コジプロメモ',
+          body: 'tag filter',
+          tags: ['コジプロ'],
+          updatedAt: new Date().toISOString(),
+          favorite: false,
+          pinned: false,
+          reminderAt: ''
+        },
+        {
+          id: 'tag-2',
+          title: 'タスクメモ',
+          body: 'tag filter',
+          tags: ['タスク'],
+          updatedAt: new Date(Date.now() - 1000).toISOString(),
+          favorite: false,
+          pinned: false,
+          reminderAt: ''
+        }
+      ]));
+    });
+
+    await page.goto('/memo.html');
+    await page.waitForSelector('#tagFilterButton');
+    await page.click('#tagFilterButton');
+    await page.waitForSelector('#tagFilterDialog:not([hidden])');
+    await expect(page.locator('#tagFilter button')).toContainText(['すべて', 'コジプロ', 'タスク']);
+
+    await page.getByRole('button', { name: 'コジプロ', exact: true }).click();
+    await expect(page.locator('#tagFilterDialog')).toBeHidden();
+    await expect(page.locator('#tagFilterButton')).toHaveText('タグ: コジプロ');
+    await expect(page.locator('.memo-card h3')).toHaveText('コジプロメモ');
+
+    await page.click('#tagFilterButton');
+    await page.getByRole('button', { name: 'すべて', exact: true }).click();
+    await expect(page.locator('#tagFilterButton')).toHaveText('タグ絞り込み');
+    await expect(page.locator('.memo-card')).toHaveCount(2);
   });
 });
