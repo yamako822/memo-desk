@@ -106,6 +106,7 @@ const TAG_MAX_COUNT = 10;
 const TAG_MAX_LENGTH = 24;
 const AUTO_TAG_LIMIT = 5;
 const OUTLOOK_EVENT_DURATION_MINUTES = 30;
+const OUTLOOK_EVENT_START_HOUR = 8;
 const DEFAULT_OUTLOOK_REMINDER_MINUTES = 15;
 const OUTLOOK_REMINDER_OPTIONS = new Set([0, 5, 15, 30, 60, 1440]);
 const ICS_LINE_BYTE_LIMIT = 72;
@@ -539,8 +540,22 @@ function sanitizeFileName(value) {
   return cleaned || "memo-reminder";
 }
 
+function toOutlookEventStart(value) {
+  const reminderDate = toReminderDate(value);
+  if (!reminderDate) return null;
+  return new Date(
+    reminderDate.getFullYear(),
+    reminderDate.getMonth(),
+    reminderDate.getDate(),
+    OUTLOOK_EVENT_START_HOUR,
+    0,
+    0,
+    0,
+  );
+}
+
 function buildOutlookIcs(memo) {
-  const start = toReminderDate(memo?.reminderAt);
+  const start = toOutlookEventStart(memo?.reminderAt);
   if (!start) return "";
 
   const end = new Date(start.getTime() + OUTLOOK_EVENT_DURATION_MINUTES * 60 * 1000);

@@ -1,6 +1,23 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 
+function formatIcsDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+}
+
+function outlookMorningStart(value) {
+  const reminderDate = new Date(value);
+  return new Date(
+    reminderDate.getFullYear(),
+    reminderDate.getMonth(),
+    reminderDate.getDate(),
+    8,
+    0,
+    0,
+    0
+  );
+}
+
 test.describe('Memo Desk E2E', () => {
   test.beforeEach(async ({ page }) => {
     // ensure local mode and autosave enabled before load
@@ -89,10 +106,14 @@ test.describe('Memo Desk E2E', () => {
     const download = await downloadPromise;
     const filePath = await download.path();
     const content = fs.readFileSync(filePath, 'utf8');
+    const expectedStart = outlookMorningStart('2026-06-05T09:30:00.000Z');
+    const expectedEnd = new Date(expectedStart.getTime() + 30 * 60 * 1000);
 
     expect(download.suggestedFilename()).toBe('Outlook通知.ics');
     expect(content).toContain('BEGIN:VCALENDAR');
     expect(content).toContain('BEGIN:VEVENT');
+    expect(content).toContain(`DTSTART:${formatIcsDate(expectedStart)}`);
+    expect(content).toContain(`DTEND:${formatIcsDate(expectedEnd)}`);
     expect(content).toContain('SUMMARY:Outlook通知');
     expect(content).toContain('BEGIN:VALARM');
     expect(content).toContain('TRIGGER:-PT15M');
@@ -265,7 +286,8 @@ test.describe('Memo Desk E2E', () => {
     await expect(page.locator('#outlookHelpTitle')).toHaveText('Outlookでリマインダー通知を受ける');
     await expect(page.locator('.outlook-help figure')).toHaveCount(3);
     await expect(page.locator('.outlook-help')).toContainText('Outlook予定に追加');
-    await expect(page.locator('.outlook-help')).toContainText('既定は15分前');
+    await expect(page.locator('.outlook-help')).toContainText('朝8:00');
+    await expect(page.locator('.outlook-help')).toContainText('予定時刻を選ぶと朝8:00');
 
     const images = await page.locator('#helpDialog img').evaluateAll((items) =>
       items.map((img) => ({
@@ -291,9 +313,10 @@ test.describe('Memo Desk E2E', () => {
     });
     const combinedSvgText = svgTexts.join('\n');
     expect(combinedSvgText).not.toMatch(/Title|Tags|Save|Memo List|New|Search|Pin|Settings|Dark mode|Grid|List|Reminder 09:30|15 min reminder/);
+    expect(combinedSvgText).not.toContain('15分前通知');
     expect(combinedSvgText).toContain('タイトル');
     expect(combinedSvgText).toContain('メモ一覧');
-    expect(combinedSvgText).toContain('15分前通知');
+    expect(combinedSvgText).toContain('朝8:00予定');
   });
 
   test('tag filter opens dialog and filters by selected tag', async ({ page }) => {

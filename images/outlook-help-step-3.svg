@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" role="img" aria-labelledby="title desc">
   <title id="title">ICSファイルをOutlookで開く</title>
-  <desc id="desc">ICSファイルをOutlook予定表に登録し、通知ベルが表示されている画面。</desc>
+  <desc id="desc">ICSファイルをOutlook予定表に登録し、朝8時の予定として表示されている画面。</desc>
   <rect width="480" height="270" rx="18" fill="#f7f5f0"/>
   <rect x="54" y="70" width="104" height="132" rx="12" fill="#ffffff" stroke="#dedbd2"/>
   <path d="M128 70v32h30" fill="#edf7f5" stroke="#dedbd2"/>
@@ -15,5 +15,5 @@
   <circle cx="410" cy="178" r="28" fill="#fff6d8" stroke="#d3a936" stroke-width="2"/>
   <path d="M410 159c-8 0-14 7-14 16v9l-5 7h38l-5-7v-9c0-9-6-16-14-16Z" fill="#a77a00"/>
   <path d="M403 197a8 8 0 0 0 16 0" fill="none" stroke="#a77a00" stroke-width="4" stroke-linecap="round"/>
-  <text x="331" y="235" fill="#67706f" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="13" font-weight="700">15分前通知</text>
+  <text x="331" y="235" fill="#67706f" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="13" font-weight="700">朝8:00予定</text>
 </svg>
