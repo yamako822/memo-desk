@@ -68,6 +68,7 @@ const memoDialogBody = document.querySelector("#memoDialogBody");
 const memoDialogSchedule = document.querySelector("#memoDialogSchedule");
 const memoDialogTags = document.querySelector("#memoDialogTags");
 const memoDialogReminder = document.querySelector("#memoDialogReminder");
+const calendarDownloadStatus = document.querySelector("#calendarDownloadStatus");
 const memoDialogCloseButton = document.querySelector("#memoDialogCloseButton");
 const memoDialogPinButton = document.querySelector("#memoDialogPinButton");
 const memoDialogFavoriteButton = document.querySelector("#memoDialogFavoriteButton");
@@ -599,7 +600,7 @@ function buildOutlookIcs(memo) {
 
 function downloadOutlookIcs(memo) {
   const content = buildOutlookIcs(memo);
-  if (!content) return;
+  if (!content) return false;
 
   const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -610,6 +611,7 @@ function downloadOutlookIcs(memo) {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
 }
 
 function rememberOpenMemo(id) {
@@ -1584,6 +1586,49 @@ function renderDialogOutlookButton(memo) {
     : "リマインダー日時を設定すると予定に追加できます";
 }
 
+function getOrCreateCalendarDownloadStatus() {
+  if (calendarDownloadStatus) return calendarDownloadStatus;
+  if (!memoDialog) return null;
+
+  const panel = memoDialog.querySelector(".memo-dialog-panel");
+  if (!panel) return null;
+
+  const existing = panel.querySelector("#calendarDownloadStatus");
+  if (existing) return existing;
+
+  const status = document.createElement("p");
+  status.className = "calendar-download-status";
+  status.id = "calendarDownloadStatus";
+  status.setAttribute("aria-live", "polite");
+  status.hidden = true;
+
+  const schedule = panel.querySelector("#memoDialogSchedule");
+  const tags = panel.querySelector("#memoDialogTags");
+  if (schedule) {
+    schedule.insertAdjacentElement("afterend", status);
+  } else if (tags) {
+    panel.insertBefore(status, tags);
+  } else {
+    panel.append(status);
+  }
+
+  return status;
+}
+
+function hideCalendarDownloadStatus() {
+  const status = getOrCreateCalendarDownloadStatus();
+  if (!status) return;
+  status.hidden = true;
+  status.textContent = "";
+}
+
+function showCalendarDownloadStatus() {
+  const status = getOrCreateCalendarDownloadStatus();
+  if (!status) return;
+  status.textContent = "カレンダー登録後、ダウンロードした .ics ファイルは削除してOKです。";
+  status.hidden = false;
+}
+
 function getOrCreateDialogReminder() {
   if (memoDialogReminder) return memoDialogReminder;
   if (!memoDialog) return null;
@@ -1637,6 +1682,7 @@ function updateMemoDialog(id) {
   renderDialogTags(memo);
   renderDialogReminder(memo);
   renderDialogOutlookButton(memo);
+  hideCalendarDownloadStatus();
 }
 
 function openMemoDialog(id) {
@@ -1656,6 +1702,7 @@ function closeMemoDialog() {
   memoDialog.hidden = true;
   clearRememberedOpenMemo(openMemoId);
   openMemoId = null;
+  hideCalendarDownloadStatus();
   document.body.classList.remove("dialog-open");
 }
 
@@ -2056,7 +2103,7 @@ function bindMemoPage() {
   });
   getOrCreateDialogOutlookButton()?.addEventListener("click", () => {
     const memo = memos.find((item) => item.id === openMemoId);
-    if (memo) downloadOutlookIcs(memo);
+    if (memo && downloadOutlookIcs(memo)) showCalendarDownloadStatus();
   });
   memoDialogEditButton.addEventListener("click", () => {
     if (openMemoId) startEditing(openMemoId);

@@ -109,6 +109,8 @@ test.describe('Memo Desk E2E', () => {
     const expectedStart = outlookMorningStart('2026-06-05T09:30:00.000Z');
     const expectedEnd = new Date(expectedStart.getTime() + 30 * 60 * 1000);
 
+    await expect(page.locator('#calendarDownloadStatus')).toBeVisible();
+    await expect(page.locator('#calendarDownloadStatus')).toContainText('削除してOK');
     expect(download.suggestedFilename()).toBe('Outlook通知.ics');
     expect(content).toContain('BEGIN:VCALENDAR');
     expect(content).toContain('BEGIN:VEVENT');
@@ -288,6 +290,7 @@ test.describe('Memo Desk E2E', () => {
     await expect(page.locator('.outlook-help')).toContainText('Outlook予定に追加');
     await expect(page.locator('.outlook-help')).toContainText('朝8:00');
     await expect(page.locator('.outlook-help')).toContainText('予定時刻を選ぶと朝8:00');
+    await expect(page.locator('.outlook-help')).toContainText('削除してOK');
 
     const images = await page.locator('#helpDialog img').evaluateAll((items) =>
       items.map((img) => ({

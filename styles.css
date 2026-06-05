@@ -927,6 +927,21 @@ time {
   display: none;
 }
 
+.calendar-download-status {
+  padding: 9px 11px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.calendar-download-status[hidden] {
+  display: none;
+}
+
 .pin-button,
 .favorite-button {
   flex: 0 0 auto;

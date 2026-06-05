@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
     <title>Memo Desk | Memos</title>
-    <link rel="manifest" href="manifest.webmanifest?v=14">
+    <link rel="manifest" href="manifest.webmanifest?v=15">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=14">
+    <link rel="stylesheet" href="styles.css?v=15">
   </head>
   <body>
     <main id="appScreen" class="app" hidden>
@@ -119,6 +119,7 @@
           <p class="memo-dialog-reminder" id="memoDialogReminder" hidden></p>
           <button type="button" class="secondary outlook-calendar-button" id="memoDialogOutlookButton" disabled title="リマインダー日時を設定すると予定に追加できます">Outlook予定に追加</button>
         </div>
+        <p class="calendar-download-status" id="calendarDownloadStatus" aria-live="polite" hidden></p>
         <div class="memo-tags" id="memoDialogTags"></div>
         <div class="card-actions">
           <button type="button" class="secondary" id="memoDialogPinButton">ピン留め</button>
@@ -156,28 +157,28 @@
           <p class="help-intro">よく使う機能を画像付きでまとめました。操作に迷ったら、まずこの順番で確認してください。</p>
           <div class="help-guide">
             <section class="help-card" aria-labelledby="helpCreateTitle">
-              <img src="images/help-memo-create.svg?v=3" alt="タイトル、本文、タグ、リマインダーを入力して保存する画面">
+              <img src="images/help-memo-create.svg?v=4" alt="タイトル、本文、タグ、リマインダーを入力して保存する画面">
               <div>
                 <h3 id="helpCreateTitle">メモを作る</h3>
                 <p>左側にタイトルと本文を入力し、必要ならタグやリマインダー日時を追加して保存します。タグが空の場合は自動タグも使えます。</p>
               </div>
             </section>
             <section class="help-card" aria-labelledby="helpFindTitle">
-              <img src="images/help-find-filter.svg?v=3" alt="検索、並び替え、タグ絞り込みでメモを探す画面">
+              <img src="images/help-find-filter.svg?v=4" alt="検索、並び替え、タグ絞り込みでメモを探す画面">
               <div>
                 <h3 id="helpFindTitle">探す・絞り込む</h3>
                 <p>検索欄でタイトル・本文・タグを横断検索できます。タグ絞り込み、スター絞り込み、並び替えを組み合わせると目的のメモをすばやく見つけられます。</p>
               </div>
             </section>
             <section class="help-card" aria-labelledby="helpOrganizeTitle">
-              <img src="images/help-organize.svg?v=3" alt="ピン留め、お気に入り、カード表示でメモを整理する画面">
+              <img src="images/help-organize.svg?v=4" alt="ピン留め、お気に入り、カード表示でメモを整理する画面">
               <div>
                 <h3 id="helpOrganizeTitle">整理する</h3>
                 <p>重要なメモはピン留めで上に固定し、よく使うメモはスターでお気に入りにします。設定からグリッド表示とリスト表示も切り替えられます。</p>
               </div>
             </section>
             <section class="help-card" aria-labelledby="helpSettingsTitle">
-              <img src="images/help-settings.svg?v=3" alt="設定画面で表示、カラー、自動下書き保存を変更する画面">
+              <img src="images/help-settings.svg?v=4" alt="設定画面で表示、カラー、自動下書き保存を変更する画面">
               <div>
                 <h3 id="helpSettingsTitle">表示と下書き</h3>
                 <p>歯車からダークモード、明るさ、カスタムカラー、表示形式、自動下書き保存を変更できます。入力途中のメモを残したい時は自動下書き保存が便利です。</p>
@@ -189,19 +190,19 @@
             <p>メモのリマインダー日付から通知付き予定ファイルを作り、Outlookにはその日の朝8:00開始の予定として登録できます。</p>
             <div class="outlook-help-steps">
               <figure>
-                <img src="images/outlook-help-step-1.svg?v=3" alt="メモのリマインダー日時を入力する画面">
+                <img src="images/outlook-help-step-1.svg?v=4" alt="メモのリマインダー日時を入力する画面">
                 <figcaption><strong>1. 日付を入れて保存</strong><span>メモのリマインダー欄に通知したい日付を設定します。</span></figcaption>
               </figure>
               <figure>
-                <img src="images/outlook-help-step-2.svg?v=3" alt="メモ詳細でOutlook予定に追加ボタンを押す画面">
+                <img src="images/outlook-help-step-2.svg?v=4" alt="メモ詳細でOutlook予定に追加ボタンを押す画面">
                 <figcaption><strong>2. Outlook予定に追加</strong><span>メモを開き、予定エリアのボタンから朝8:00開始の .ics ファイルを作成します。</span></figcaption>
               </figure>
               <figure>
-                <img src="images/outlook-help-step-3.svg?v=3" alt=".icsファイルをOutlook予定表に登録する画面">
+                <img src="images/outlook-help-step-3.svg?v=4" alt=".icsファイルをOutlook予定表に登録する画面">
                 <figcaption><strong>3. Outlookで保存</strong><span>ダウンロードした .ics を開くと、その日の朝8:00の予定として保存できます。</span></figcaption>
               </figure>
             </div>
-            <p class="muted">通知タイミングは設定画面の「Outlook予定」で変更できます。予定時刻を選ぶと朝8:00に通知されます。</p>
+            <p class="muted">通知タイミングは設定画面の「Outlook予定」で変更できます。予定時刻を選ぶと朝8:00に通知されます。カレンダー登録後、ダウンロードした .ics ファイルは削除してOKです。</p>
           </section>
         </div>
       </article>
@@ -335,7 +336,7 @@
       </article>
     </div>
 
-    <script type="module" src="app.js?v=14"></script>
-    <script src="pwa.js?v=14"></script>
+    <script type="module" src="app.js?v=15"></script>
+    <script src="pwa.js?v=15"></script>
   </body>
 </html>

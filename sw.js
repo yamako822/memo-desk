@@ -1,4 +1,4 @@
-const CACHE = "memo-desk-v28";
+const CACHE = "memo-desk-v29";
 
 const ASSETS = [
   "./",
@@ -14,13 +14,13 @@ const ASSETS = [
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./images/help-memo-create.svg?v=3",
-  "./images/help-find-filter.svg?v=3",
-  "./images/help-organize.svg?v=3",
-  "./images/help-settings.svg?v=3",
-  "./images/outlook-help-step-1.svg?v=3",
-  "./images/outlook-help-step-2.svg?v=3",
-  "./images/outlook-help-step-3.svg?v=3",
+  "./images/help-memo-create.svg?v=4",
+  "./images/help-find-filter.svg?v=4",
+  "./images/help-organize.svg?v=4",
+  "./images/help-settings.svg?v=4",
+  "./images/outlook-help-step-1.svg?v=4",
+  "./images/outlook-help-step-2.svg?v=4",
+  "./images/outlook-help-step-3.svg?v=4",
 ];
 
 self.addEventListener("install", (event) => {
