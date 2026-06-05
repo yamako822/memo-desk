@@ -80,6 +80,8 @@ test.describe('Memo Desk E2E', () => {
     await page.waitForSelector('.open-button');
     await page.click('.open-button');
     await page.waitForSelector('#memoDialog:not([hidden])');
+    await expect(page.locator('#memoDialogSchedule')).toBeVisible();
+    await expect(page.locator('#memoDialogSchedule #memoDialogOutlookButton')).toBeVisible();
     await expect(page.locator('#memoDialogOutlookButton')).toBeEnabled();
 
     const downloadPromise = page.waitForEvent('download');

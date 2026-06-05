@@ -499,6 +499,7 @@ button:hover {
 }
 
 .outlook-calendar-button {
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
@@ -891,6 +892,38 @@ time {
   border-color: var(--danger-line);
   background: var(--danger-bg);
   color: var(--danger);
+}
+
+.memo-dialog-schedule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.memo-dialog-schedule[hidden] {
+  display: none;
+}
+
+.memo-dialog-schedule[data-state="due"] {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+}
+
+.memo-dialog-schedule .memo-dialog-reminder {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.memo-dialog-schedule .memo-dialog-reminder[hidden] {
+  display: none;
 }
 
 .pin-button,
@@ -1319,6 +1352,15 @@ time {
 
   .display-settings {
     grid-template-columns: 1fr;
+  }
+
+  .memo-dialog-schedule {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .memo-dialog-schedule .outlook-calendar-button {
+    width: 100%;
   }
 
   .tag-input-row {

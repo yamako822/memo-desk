@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
     <title>Memo Desk | Memos</title>
-    <link rel="manifest" href="manifest.webmanifest?v=8">
+    <link rel="manifest" href="manifest.webmanifest?v=9">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=9">
   </head>
   <body>
     <main id="appScreen" class="app" hidden>
@@ -114,12 +114,14 @@
           <button type="button" class="secondary icon-close-button" id="memoDialogCloseButton" aria-label="閉じる">×</button>
         </div>
         <div class="memo-dialog-body" id="memoDialogBody"></div>
-        <p class="memo-dialog-reminder" id="memoDialogReminder" hidden></p>
+        <div class="memo-dialog-schedule" id="memoDialogSchedule" hidden>
+          <p class="memo-dialog-reminder" id="memoDialogReminder" hidden></p>
+          <button type="button" class="secondary outlook-calendar-button" id="memoDialogOutlookButton" disabled title="リマインダー日時を設定すると予定に追加できます">Outlook予定に追加</button>
+        </div>
         <div class="memo-tags" id="memoDialogTags"></div>
         <div class="card-actions">
           <button type="button" class="secondary" id="memoDialogPinButton">ピン留め</button>
           <button type="button" class="secondary" id="memoDialogFavoriteButton">お気に入り</button>
-          <button type="button" class="secondary outlook-calendar-button" id="memoDialogOutlookButton" disabled title="リマインダー日時を設定すると予定に追加できます">Outlook予定に追加</button>
           <button type="button" class="secondary" id="memoDialogEditButton">編集</button>
           <button type="button" class="danger" id="memoDialogDeleteButton">削除</button>
         </div>
@@ -284,7 +286,7 @@
       </article>
     </div>
 
-    <script type="module" src="app.js?v=8"></script>
-    <script src="pwa.js?v=8"></script>
+    <script type="module" src="app.js?v=9"></script>
+    <script src="pwa.js?v=9"></script>
   </body>
 </html>

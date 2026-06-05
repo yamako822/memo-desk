@@ -65,6 +65,7 @@ const memoDialog = document.querySelector("#memoDialog");
 const memoDialogTitle = document.querySelector("#memoDialogTitle");
 const memoDialogTime = document.querySelector("#memoDialogTime");
 const memoDialogBody = document.querySelector("#memoDialogBody");
+const memoDialogSchedule = document.querySelector("#memoDialogSchedule");
 const memoDialogTags = document.querySelector("#memoDialogTags");
 const memoDialogReminder = document.querySelector("#memoDialogReminder");
 const memoDialogCloseButton = document.querySelector("#memoDialogCloseButton");
@@ -1480,20 +1481,57 @@ function renderDialogReminder(memo) {
   if (!reminder) return;
 
   const reminderText = formatReminderDate(memo.reminderAt);
+  const schedule = getOrCreateDialogSchedule();
   reminder.hidden = !reminderText;
   reminder.textContent = reminderText ? `リマインダー: ${reminderText}` : "";
   reminder.dataset.state = getReminderState(memo.reminderAt);
+  if (schedule) schedule.dataset.state = reminder.dataset.state;
+}
+
+function getOrCreateDialogSchedule() {
+  if (memoDialogSchedule) return memoDialogSchedule;
+  if (!memoDialog) return null;
+
+  const panel = memoDialog.querySelector(".memo-dialog-panel");
+  if (!panel) return null;
+
+  const existing = panel.querySelector("#memoDialogSchedule");
+  if (existing) return existing;
+
+  const schedule = document.createElement("div");
+  schedule.className = "memo-dialog-schedule";
+  schedule.id = "memoDialogSchedule";
+  schedule.hidden = true;
+
+  const tags = panel.querySelector("#memoDialogTags");
+  const actions = panel.querySelector(".card-actions");
+  if (tags) {
+    panel.insertBefore(schedule, tags);
+  } else if (actions) {
+    panel.insertBefore(schedule, actions);
+  } else {
+    panel.append(schedule);
+  }
+
+  return schedule;
 }
 
 function getOrCreateDialogOutlookButton() {
-  if (memoDialogOutlookButton) return memoDialogOutlookButton;
   if (!memoDialog) return null;
 
+  const schedule = getOrCreateDialogSchedule();
+  const panel = memoDialog.querySelector(".memo-dialog-panel");
   const actions = memoDialog.querySelector(".card-actions");
-  if (!actions) return null;
+  if (!panel && !schedule && !actions) return null;
 
-  const existing = actions.querySelector("#memoDialogOutlookButton");
-  if (existing) return existing;
+  const existing =
+    schedule?.querySelector("#memoDialogOutlookButton") ||
+    panel?.querySelector("#memoDialogOutlookButton") ||
+    memoDialogOutlookButton;
+  if (existing) {
+    if (schedule && existing.parentElement !== schedule) schedule.append(existing);
+    return existing;
+  }
 
   const button = document.createElement("button");
   button.type = "button";
@@ -1501,11 +1539,17 @@ function getOrCreateDialogOutlookButton() {
   button.id = "memoDialogOutlookButton";
   button.textContent = "Outlook予定に追加";
 
-  const editButton = actions.querySelector("#memoDialogEditButton");
-  if (editButton) {
-    actions.insertBefore(button, editButton);
+  if (schedule) {
+    schedule.append(button);
+  } else if (actions) {
+    const editButton = actions.querySelector("#memoDialogEditButton");
+    if (editButton) {
+      actions.insertBefore(button, editButton);
+    } else {
+      actions.append(button);
+    }
   } else {
-    actions.append(button);
+    panel?.append(button);
   }
 
   return button;
@@ -1516,6 +1560,8 @@ function renderDialogOutlookButton(memo) {
   if (!button) return;
 
   const hasReminder = Boolean(toReminderDate(memo.reminderAt));
+  const schedule = getOrCreateDialogSchedule();
+  if (schedule) schedule.hidden = !hasReminder;
   button.disabled = !hasReminder;
   button.title = hasReminder
     ? "通知付きのOutlook予定ファイルを作成します"
@@ -1528,9 +1574,13 @@ function getOrCreateDialogReminder() {
 
   const panel = memoDialog.querySelector(".memo-dialog-panel");
   if (!panel) return null;
+  const schedule = getOrCreateDialogSchedule();
 
-  const existing = panel.querySelector(".memo-dialog-reminder");
-  if (existing) return existing;
+  const existing = schedule?.querySelector(".memo-dialog-reminder") || panel.querySelector(".memo-dialog-reminder");
+  if (existing) {
+    if (schedule && existing.parentElement !== schedule) schedule.prepend(existing);
+    return existing;
+  }
 
   const reminder = document.createElement("p");
   reminder.className = "memo-dialog-reminder";
@@ -1538,7 +1588,9 @@ function getOrCreateDialogReminder() {
   reminder.hidden = true;
 
   const tags = panel.querySelector("#memoDialogTags");
-  if (tags) {
+  if (schedule) {
+    schedule.prepend(reminder);
+  } else if (tags) {
     panel.insertBefore(reminder, tags);
   } else {
     panel.append(reminder);
