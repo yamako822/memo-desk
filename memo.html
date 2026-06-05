@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
     <title>Memo Desk | Memos</title>
-    <link rel="manifest" href="manifest.webmanifest?v=11">
+    <link rel="manifest" href="manifest.webmanifest?v=12">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="stylesheet" href="styles.css?v=12">
   </head>
   <body>
     <main id="appScreen" class="app" hidden>
@@ -27,6 +27,7 @@
           </div>
           <div class="header-actions">
             <button type="button" class="secondary icon-button" id="settingsButton" title="設定" aria-label="設定">⚙︎</button>
+            <button type="button" class="secondary icon-button" id="helpButton" title="ヘルプ" aria-label="使い方の説明" aria-haspopup="dialog" aria-expanded="false">?</button>
             <span class="count" id="memoCount">0件</span>
           </div>
         </div>
@@ -142,6 +143,70 @@
       </article>
     </div>
 
+    <div class="help-dialog-backdrop" id="helpDialog" role="dialog" aria-modal="true" aria-labelledby="helpDialogTitle" hidden>
+      <article class="help-dialog-panel">
+        <div class="help-dialog-header">
+          <div>
+            <p class="eyebrow">Memo Desk</p>
+            <h2 id="helpDialogTitle">使い方ガイド</h2>
+          </div>
+          <button type="button" class="secondary icon-close-button" id="helpDialogCloseButton" aria-label="閉じる">×</button>
+        </div>
+        <div class="help-dialog-body">
+          <p class="help-intro">よく使う機能を画像付きでまとめました。操作に迷ったら、まずこの順番で確認してください。</p>
+          <div class="help-guide">
+            <section class="help-card" aria-labelledby="helpCreateTitle">
+              <img src="images/help-memo-create.svg" alt="タイトル、本文、タグ、リマインダーを入力して保存する画面">
+              <div>
+                <h3 id="helpCreateTitle">メモを作る</h3>
+                <p>左側にタイトルと本文を入力し、必要ならタグやリマインダー日時を追加して保存します。タグが空の場合は自動タグも使えます。</p>
+              </div>
+            </section>
+            <section class="help-card" aria-labelledby="helpFindTitle">
+              <img src="images/help-find-filter.svg" alt="検索、並び替え、タグ絞り込みでメモを探す画面">
+              <div>
+                <h3 id="helpFindTitle">探す・絞り込む</h3>
+                <p>検索欄でタイトル・本文・タグを横断検索できます。タグ絞り込み、スター絞り込み、並び替えを組み合わせると目的のメモをすばやく見つけられます。</p>
+              </div>
+            </section>
+            <section class="help-card" aria-labelledby="helpOrganizeTitle">
+              <img src="images/help-organize.svg" alt="ピン留め、お気に入り、カード表示でメモを整理する画面">
+              <div>
+                <h3 id="helpOrganizeTitle">整理する</h3>
+                <p>重要なメモはピン留めで上に固定し、よく使うメモはスターでお気に入りにします。設定からグリッド表示とリスト表示も切り替えられます。</p>
+              </div>
+            </section>
+            <section class="help-card" aria-labelledby="helpSettingsTitle">
+              <img src="images/help-settings.svg" alt="設定画面で表示、カラー、自動下書き保存を変更する画面">
+              <div>
+                <h3 id="helpSettingsTitle">表示と下書き</h3>
+                <p>歯車からダークモード、明るさ、カスタムカラー、表示形式、自動下書き保存を変更できます。入力途中のメモを残したい時は自動下書き保存が便利です。</p>
+              </div>
+            </section>
+          </div>
+          <section class="outlook-help" aria-labelledby="outlookHelpTitle">
+            <h3 id="outlookHelpTitle">Outlookでリマインダー通知を受ける</h3>
+            <p>メモのリマインダー日時から通知付き予定ファイルを作り、Outlookに登録できます。</p>
+            <div class="outlook-help-steps">
+              <figure>
+                <img src="images/outlook-help-step-1.svg" alt="メモのリマインダー日時を入力する画面">
+                <figcaption><strong>1. 日時を入れて保存</strong><span>メモのリマインダー欄に通知したい日時を設定します。</span></figcaption>
+              </figure>
+              <figure>
+                <img src="images/outlook-help-step-2.svg" alt="メモ詳細でOutlook予定に追加ボタンを押す画面">
+                <figcaption><strong>2. Outlook予定に追加</strong><span>メモを開き、予定エリアのボタンから .ics ファイルを作成します。</span></figcaption>
+              </figure>
+              <figure>
+                <img src="images/outlook-help-step-3.svg" alt=".icsファイルをOutlook予定表に登録する画面">
+                <figcaption><strong>3. Outlookで保存</strong><span>ダウンロードした .ics を開いて予定表に保存すると通知されます。</span></figcaption>
+              </figure>
+            </div>
+            <p class="muted">通知タイミングは設定画面の「Outlook予定」で変更できます。既定は15分前です。</p>
+          </section>
+        </div>
+      </article>
+    </div>
+
     <div class="settings-dialog-backdrop" id="settingsDialog" role="dialog" aria-modal="true" aria-labelledby="settingsDialogTitle" hidden>
       <article class="settings-dialog-panel">
         <div class="settings-dialog-header">
@@ -240,41 +305,6 @@
           </div>
 
           <div class="settings-section">
-            <h3>ヘルプ</h3>
-            <button type="button" class="secondary icon-button" id="helpButton" title="ヘルプ" aria-label="使い方の説明" aria-expanded="false">?</button>
-            <div class="page-help" id="helpPanel" hidden>
-              <p>Memo Desk は素早くメモを残して整理できるアプリです。基本操作は下記の通りです。</p>
-              <ul>
-                <li>左側の入力欄にタイトル・本文・タグを入力し、<strong>保存する</strong> を押してメモを保存します。</li>
-                <li>メモカードの <strong>開く</strong> で詳細を表示します。カードをダブルクリックしても開けます。</li>
-                <li>カードの <strong>ピン</strong> を使うと一覧の上位に固定表示、<strong>☆</strong> はお気に入りに登録します。</li>
-                <li>検索ボックスでタイトル・本文・タグを横断検索できます。タグボタンで絞り込みも可能です。</li>
-                <li>ログインすればクラウド同期され、別の端末でも同じメモを参照できます。未ログイン時はこのブラウザ内のみの保存です。</li>
-              </ul>
-              <p class="muted">補足: 自動下書き保存を有効にすると編集中の内容を一定間隔で保存します（オフにしている場合は明示的に保存してください）。</p>
-              <section class="outlook-help" aria-labelledby="outlookHelpTitle">
-                <h4 id="outlookHelpTitle">Outlookでリマインダー通知を受ける</h4>
-                <p>メモのリマインダー日時から通知付き予定ファイルを作り、Outlookに登録できます。</p>
-                <div class="outlook-help-steps">
-                  <figure>
-                    <img src="images/outlook-help-step-1.svg" alt="メモのリマインダー日時を入力する画面">
-                    <figcaption><strong>1. 日時を入れて保存</strong><span>メモのリマインダー欄に通知したい日時を設定します。</span></figcaption>
-                  </figure>
-                  <figure>
-                    <img src="images/outlook-help-step-2.svg" alt="メモ詳細でOutlook予定に追加ボタンを押す画面">
-                    <figcaption><strong>2. Outlook予定に追加</strong><span>メモを開き、予定エリアのボタンから .ics ファイルを作成します。</span></figcaption>
-                  </figure>
-                  <figure>
-                    <img src="images/outlook-help-step-3.svg" alt=".icsファイルをOutlook予定表に登録する画面">
-                    <figcaption><strong>3. Outlookで保存</strong><span>ダウンロードした .ics を開いて予定表に保存すると通知されます。</span></figcaption>
-                  </figure>
-                </div>
-                <p class="muted">通知タイミングは設定画面の「Outlook予定」で変更できます。既定は15分前です。</p>
-              </section>
-            </div>
-          </div>
-
-          <div class="settings-section">
             <h3>その他</h3>
             <div class="settings-actions">
               <button type="button" class="secondary feedback-button" id="feedbackButton">要望を送る</button>
@@ -305,7 +335,7 @@
       </article>
     </div>
 
-    <script type="module" src="app.js?v=11"></script>
-    <script src="pwa.js?v=11"></script>
+    <script type="module" src="app.js?v=12"></script>
+    <script src="pwa.js?v=12"></script>
   </body>
 </html>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" role="img" aria-labelledby="title desc">
+  <title id="title">Find and filter memos</title>
+  <desc id="desc">A memo list toolbar showing new, favorite, tag filter, sort, and search controls.</desc>
+  <rect width="480" height="270" rx="18" fill="#f7f5f0"/>
+  <rect x="44" y="36" width="392" height="198" rx="14" fill="#ffffff" stroke="#dedbd2"/>
+  <text x="70" y="70" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="800">Memo List</text>
+  <rect x="70" y="92" width="58" height="34" rx="8" fill="#ffffff" stroke="#dedbd2"/>
+  <text x="89" y="114" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">New</text>
+  <rect x="140" y="92" width="44" height="34" rx="8" fill="#fff6d8" stroke="#d3a936"/>
+  <text x="157" y="116" fill="#a77a00" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">*</text>
+  <rect x="196" y="92" width="104" height="34" rx="8" fill="#edf7f5" stroke="#7ac8bd" stroke-width="2"/>
+  <text x="221" y="114" fill="#0b5f59" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="800">Tags</text>
+  <rect x="312" y="92" width="84" height="34" rx="8" fill="#ffffff" stroke="#dedbd2"/>
+  <text x="332" y="114" fill="#67706f" font-family="Segoe UI, Arial, sans-serif" font-size="13">Search</text>
+  <rect x="70" y="150" width="150" height="52" rx="9" fill="#fffefb" stroke="#dedbd2"/>
+  <rect x="236" y="150" width="150" height="52" rx="9" fill="#fffefb" stroke="#dedbd2"/>
+  <path d="M88 170h80M88 188h56M254 170h92M254 188h64" stroke="#d7d1c7" stroke-width="7" stroke-linecap="round"/>
+  <path d="M398 94c21 20 27 48 15 78" fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round"/>
+  <path d="M405 166l8 12 11-10" fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

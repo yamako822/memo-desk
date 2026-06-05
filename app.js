@@ -89,7 +89,8 @@ const colorResetButton = document.querySelector("#colorResetButton");
 const layoutGridRadio = document.querySelector("#layoutGridRadio");
 const layoutListRadio = document.querySelector("#layoutListRadio");
 const helpButton = document.querySelector("#helpButton");
-const helpPanel = document.querySelector("#helpPanel");
+const helpDialog = document.querySelector("#helpDialog");
+const helpDialogCloseButton = document.querySelector("#helpDialogCloseButton");
 const newMemoButton = document.querySelector("#newMemoButton");
 const confirmDialog = document.querySelector("#confirmDialog");
 const confirmCancel = document.querySelector("#confirmCancel");
@@ -2008,12 +2009,26 @@ function bindMemoPage() {
     });
   }
 
-  if (helpButton && helpPanel) {
+  if (helpButton && helpDialog) {
     helpButton.addEventListener("click", () => {
-      const show = helpPanel.hidden;
-      helpPanel.hidden = !show;
-      helpButton.setAttribute("aria-expanded", String(show));
-      if (!show) {
+      helpDialog.hidden = false;
+      helpButton.setAttribute("aria-expanded", "true");
+      document.body.classList.add("dialog-open");
+      helpDialogCloseButton?.focus();
+    });
+
+    helpDialogCloseButton?.addEventListener("click", () => {
+      helpDialog.hidden = true;
+      helpButton.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("dialog-open");
+      helpButton.focus();
+    });
+
+    helpDialog.addEventListener("click", (event) => {
+      if (event.target === helpDialog) {
+        helpDialog.hidden = true;
+        helpButton.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("dialog-open");
         helpButton.focus();
       }
     });
@@ -2044,9 +2059,10 @@ function bindMemoPage() {
         closeMemoDialog();
         return;
       }
-      if (helpPanel && !helpPanel.hidden) {
-        helpPanel.hidden = true;
+      if (helpDialog && !helpDialog.hidden) {
+        helpDialog.hidden = true;
         helpButton?.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("dialog-open");
         helpButton?.focus();
         return;
       }

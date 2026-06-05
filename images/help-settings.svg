@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" role="img" aria-labelledby="title desc">
+  <title id="title">Settings and display</title>
+  <desc id="desc">Settings dialog showing dark mode, brightness, colors, layout, and autosave.</desc>
+  <rect width="480" height="270" rx="18" fill="#f7f5f0"/>
+  <rect x="84" y="26" width="312" height="218" rx="14" fill="#ffffff" stroke="#dedbd2"/>
+  <text x="112" y="60" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">Settings</text>
+  <rect x="112" y="82" width="256" height="34" rx="8" fill="#edf7f5" stroke="#7ac8bd"/>
+  <circle cx="132" cy="99" r="9" fill="#0f766e"/>
+  <text x="152" y="104" fill="#0b5f59" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="800">Dark mode / brightness</text>
+  <rect x="112" y="130" width="68" height="42" rx="8" fill="#0f766e"/>
+  <rect x="192" y="130" width="68" height="42" rx="8" fill="#fffefb" stroke="#dedbd2"/>
+  <rect x="272" y="130" width="68" height="42" rx="8" fill="#fff6d8" stroke="#d3a936"/>
+  <rect x="112" y="188" width="116" height="30" rx="8" fill="#ffffff" stroke="#dedbd2"/>
+  <text x="140" y="208" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">Grid</text>
+  <rect x="240" y="188" width="116" height="30" rx="8" fill="#ffffff" stroke="#dedbd2"/>
+  <text x="276" y="208" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">List</text>
+  <circle cx="378" cy="48" r="22" fill="#edf7f5" stroke="#7ac8bd"/>
+  <path d="M378 35v26M365 48h26" stroke="#0f766e" stroke-width="4" stroke-linecap="round"/>
+</svg>

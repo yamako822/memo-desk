@@ -991,7 +991,23 @@ time {
   background: rgba(17, 23, 21, 0.52);
 }
 
+.help-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  width: 100vw;
+  min-height: 100dvh;
+  background: rgba(17, 23, 21, 0.52);
+}
+
 .settings-dialog-backdrop[hidden] {
+  display: none;
+}
+
+.help-dialog-backdrop[hidden] {
   display: none;
 }
 
@@ -1010,12 +1026,90 @@ time {
   box-shadow: var(--shadow);
 }
 
+.help-dialog-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  width: min(920px, 100%);
+  max-height: min(820px, calc(100dvh - 32px));
+  min-height: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
 .settings-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
+}
+
+.help-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.help-dialog-body {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 6px 2px 0;
+  scrollbar-gutter: stable;
+}
+
+.help-intro {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.help-guide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.help-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.help-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  object-fit: cover;
+}
+
+.help-card h3 {
+  margin: 0 0 5px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.help-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 .settings-dialog-body {
@@ -1114,33 +1208,16 @@ time {
   width: min(220px, 100%);
 }
 
-.page-help {
+.outlook-help {
   display: grid;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 12px;
+  gap: 12px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--card-bg);
 }
 
-.page-help[hidden] {
-  display: none;
-}
-
-.page-help ul {
-  margin: 0 0 0 18px;
-  padding: 0;
-}
-
-.outlook-help {
-  display: grid;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.outlook-help h4 {
+.outlook-help h3 {
   margin: 0;
   color: var(--text);
   font-size: 15px;
@@ -1421,6 +1498,19 @@ time {
 
   .memo-dialog-schedule .outlook-calendar-button {
     width: 100%;
+  }
+
+  .help-dialog-backdrop {
+    padding: 12px;
+  }
+
+  .help-dialog-panel {
+    max-height: calc(100dvh - 24px);
+    padding: 16px;
+  }
+
+  .help-guide {
+    grid-template-columns: 1fr;
   }
 
   .outlook-help figure {

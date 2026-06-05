@@ -166,12 +166,13 @@ test.describe('Memo Desk E2E', () => {
         newMemo: read('#newMemoButton'),
         sort: read('#sortSelect'),
         search: read('#searchInput'),
+        help: read('#helpButton'),
         tag: read('#tagFilterButton')
       };
     });
 
     expect(styles.rootText).toBe('#eef3f1');
-    for (const key of ['settings', 'newMemo', 'sort', 'search', 'tag']) {
+    for (const key of ['settings', 'newMemo', 'sort', 'search', 'help', 'tag']) {
       expect(styles[key].color).not.toBe('rgb(0, 0, 0)');
       expect(styles[key].textFillColor).not.toBe('rgb(0, 0, 0)');
     }
@@ -216,42 +217,57 @@ test.describe('Memo Desk E2E', () => {
     await page.waitForSelector('#settingsDialog:not([hidden])');
 
     await expect(page.locator('.app-header #settingsButton')).toBeVisible();
-    await expect(page.locator('.app-header #helpButton')).toHaveCount(0);
+    await expect(page.locator('.app-header #helpButton')).toBeVisible();
     await expect(page.locator('.app-header #feedbackButton')).toHaveCount(0);
     await expect(page.locator('.app-header #logoutButton')).toHaveCount(0);
     await expect(page.locator('.app-header #usernameForm')).toHaveCount(0);
 
-    await expect(page.locator('#settingsDialog #helpButton')).toBeVisible();
+    await expect(page.locator('#settingsDialog #helpButton')).toHaveCount(0);
     await expect(page.locator('#settingsDialog #feedbackButton')).toBeVisible();
     await expect(page.locator('#settingsDialog #logoutButton')).toHaveText('ログイン画面に戻る');
     await expect(page.locator('#settingsDialog #usernameForm')).toBeVisible();
     await expect(page.locator('#outlookReminderSelect')).toHaveValue('15');
+    const headerButtonSizes = await page.evaluate(() => {
+      const settings = document.querySelector('#settingsButton').getBoundingClientRect();
+      const help = document.querySelector('#helpButton').getBoundingClientRect();
+      return {
+        settingsWidth: settings.width,
+        settingsHeight: settings.height,
+        helpWidth: help.width,
+        helpHeight: help.height
+      };
+    });
+    expect(headerButtonSizes.helpWidth).toBe(headerButtonSizes.settingsWidth);
+    expect(headerButtonSizes.helpHeight).toBe(headerButtonSizes.settingsHeight);
 
     const scrollState = await page.locator('.settings-dialog-body').evaluate((body) => {
       const style = getComputedStyle(body);
       return {
-        overflowY: style.overflowY,
-        canScroll: body.scrollHeight > body.clientHeight
+        overflowY: style.overflowY
       };
     });
 
     expect(scrollState.overflowY).toBe('auto');
-    expect(scrollState.canScroll).toBeTruthy();
   });
 
-  test('help shows illustrated Outlook reminder instructions', async ({ page }) => {
+  test('help opens from header and shows illustrated feature instructions', async ({ page }) => {
     await page.goto('/memo.html');
-    await page.waitForSelector('#settingsButton');
-    await page.click('#settingsButton');
-    await page.waitForSelector('#settingsDialog:not([hidden])');
+    await page.waitForSelector('#helpButton');
     await page.click('#helpButton');
 
+    await page.waitForSelector('#helpDialog:not([hidden])');
+    await expect(page.locator('#helpDialogTitle')).toHaveText('使い方ガイド');
+    await expect(page.locator('.help-card')).toHaveCount(4);
+    await expect(page.locator('.help-dialog-body')).toContainText('メモを作る');
+    await expect(page.locator('.help-dialog-body')).toContainText('探す・絞り込む');
+    await expect(page.locator('.help-dialog-body')).toContainText('整理する');
+    await expect(page.locator('.help-dialog-body')).toContainText('表示と下書き');
     await expect(page.locator('#outlookHelpTitle')).toHaveText('Outlookでリマインダー通知を受ける');
     await expect(page.locator('.outlook-help figure')).toHaveCount(3);
     await expect(page.locator('.outlook-help')).toContainText('Outlook予定に追加');
     await expect(page.locator('.outlook-help')).toContainText('既定は15分前');
 
-    const images = await page.locator('.outlook-help img').evaluateAll((items) =>
+    const images = await page.locator('#helpDialog img').evaluateAll((items) =>
       items.map((img) => ({
         complete: img.complete,
         width: img.naturalWidth,
@@ -259,7 +275,7 @@ test.describe('Memo Desk E2E', () => {
       }))
     );
 
-    expect(images).toHaveLength(3);
+    expect(images).toHaveLength(7);
     for (const image of images) {
       expect(image.complete).toBeTruthy();
       expect(image.width).toBeGreaterThan(0);

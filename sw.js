@@ -1,4 +1,4 @@
-const CACHE = "memo-desk-v25";
+const CACHE = "memo-desk-v26";
 
 const ASSETS = [
   "./",
@@ -14,6 +14,10 @@ const ASSETS = [
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./images/help-memo-create.svg",
+  "./images/help-find-filter.svg",
+  "./images/help-organize.svg",
+  "./images/help-settings.svg",
   "./images/outlook-help-step-1.svg",
   "./images/outlook-help-step-2.svg",
   "./images/outlook-help-step-3.svg",
