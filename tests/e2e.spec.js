@@ -281,6 +281,19 @@ test.describe('Memo Desk E2E', () => {
       expect(image.width).toBeGreaterThan(0);
       expect(image.alt.length).toBeGreaterThan(8);
     }
+
+    const svgTexts = await page.evaluate(async () => {
+      const sources = [...document.querySelectorAll('#helpDialog img')].map((img) => img.src);
+      return Promise.all(sources.map(async (source) => {
+        const response = await fetch(source);
+        return response.text();
+      }));
+    });
+    const combinedSvgText = svgTexts.join('\n');
+    expect(combinedSvgText).not.toMatch(/Title|Tags|Save|Memo List|New|Search|Pin|Settings|Dark mode|Grid|List|Reminder 09:30|15 min reminder/);
+    expect(combinedSvgText).toContain('タイトル');
+    expect(combinedSvgText).toContain('メモ一覧');
+    expect(combinedSvgText).toContain('15分前通知');
   });
 
   test('tag filter opens dialog and filters by selected tag', async ({ page }) => {

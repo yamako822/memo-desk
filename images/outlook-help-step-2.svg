@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" role="img" aria-labelledby="title desc">
-  <title id="title">Add the reminder to Outlook</title>
-  <desc id="desc">A memo detail dialog with the Outlook calendar button highlighted.</desc>
+  <title id="title">Outlook予定に追加する</title>
+  <desc id="desc">Outlook予定に追加ボタンが強調されたメモ詳細画面。</desc>
   <rect width="480" height="270" rx="18" fill="#f7f5f0"/>
   <rect x="48" y="28" width="384" height="214" rx="14" fill="#ffffff" stroke="#dedbd2"/>
   <rect x="72" y="54" width="260" height="24" rx="6" fill="#202124"/>
@@ -8,9 +8,9 @@
   <path d="M88 110h250M88 128h210M88 146h230" stroke="#d7d1c7" stroke-width="6" stroke-linecap="round"/>
   <rect x="72" y="170" width="336" height="48" rx="9" fill="#edf7f5" stroke="#7ac8bd" stroke-width="2"/>
   <rect x="90" y="185" width="140" height="19" rx="9.5" fill="#ffffff" stroke="#7ac8bd"/>
-  <text x="104" y="199" fill="#0b5f59" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">Reminder 09:30</text>
+  <text x="104" y="199" fill="#0b5f59" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="12" font-weight="700">通知 09:30</text>
   <rect x="258" y="180" width="124" height="29" rx="7" fill="#0f766e"/>
-  <text x="275" y="199" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">Outlook</text>
+  <text x="275" y="199" fill="#ffffff" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="13" font-weight="700">Outlook</text>
   <path d="M386 144c30 18 42 37 43 68" fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round"/>
   <path d="M419 203l10 14 9-15" fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="386" cy="66" r="18" fill="#edf7f5" stroke="#7ac8bd"/>

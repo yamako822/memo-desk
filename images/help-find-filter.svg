@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" role="img" aria-labelledby="title desc">
-  <title id="title">Find and filter memos</title>
-  <desc id="desc">A memo list toolbar showing new, favorite, tag filter, sort, and search controls.</desc>
+  <title id="title">メモを探す・絞り込む</title>
+  <desc id="desc">新規、お気に入り、タグ絞り込み、並び替え、検索の操作があるメモ一覧画面。</desc>
   <rect width="480" height="270" rx="18" fill="#f7f5f0"/>
   <rect x="44" y="36" width="392" height="198" rx="14" fill="#ffffff" stroke="#dedbd2"/>
-  <text x="70" y="70" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="800">Memo List</text>
+  <text x="70" y="70" fill="#202124" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="22" font-weight="800">メモ一覧</text>
   <rect x="70" y="92" width="58" height="34" rx="8" fill="#ffffff" stroke="#dedbd2"/>
-  <text x="89" y="114" fill="#202124" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">New</text>
+  <text x="87" y="114" fill="#202124" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="13" font-weight="700">新規</text>
   <rect x="140" y="92" width="44" height="34" rx="8" fill="#fff6d8" stroke="#d3a936"/>
-  <text x="157" y="116" fill="#a77a00" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">*</text>
+  <text x="157" y="116" fill="#a77a00" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="20" font-weight="800">☆</text>
   <rect x="196" y="92" width="104" height="34" rx="8" fill="#edf7f5" stroke="#7ac8bd" stroke-width="2"/>
-  <text x="221" y="114" fill="#0b5f59" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="800">Tags</text>
+  <text x="220" y="114" fill="#0b5f59" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="13" font-weight="800">タグ</text>
   <rect x="312" y="92" width="84" height="34" rx="8" fill="#ffffff" stroke="#dedbd2"/>
-  <text x="332" y="114" fill="#67706f" font-family="Segoe UI, Arial, sans-serif" font-size="13">Search</text>
+  <text x="333" y="114" fill="#67706f" font-family="Segoe UI, Yu Gothic UI, Meiryo, Arial, sans-serif" font-size="13">検索</text>
   <rect x="70" y="150" width="150" height="52" rx="9" fill="#fffefb" stroke="#dedbd2"/>
   <rect x="236" y="150" width="150" height="52" rx="9" fill="#fffefb" stroke="#dedbd2"/>
   <path d="M88 170h80M88 188h56M254 170h92M254 188h64" stroke="#d7d1c7" stroke-width="7" stroke-linecap="round"/>
