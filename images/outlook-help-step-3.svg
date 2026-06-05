@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" role="img" aria-labelledby="title desc">
+  <title id="title">Open the ICS file in Outlook</title>
+  <desc id="desc">An ICS file moving into an Outlook calendar with a reminder bell.</desc>
+  <rect width="480" height="270" rx="18" fill="#f7f5f0"/>
+  <rect x="54" y="70" width="104" height="132" rx="12" fill="#ffffff" stroke="#dedbd2"/>
+  <path d="M128 70v32h30" fill="#edf7f5" stroke="#dedbd2"/>
+  <text x="78" y="145" fill="#0f766e" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">.ics</text>
+  <path d="M184 136h82" stroke="#0f766e" stroke-width="6" stroke-linecap="round"/>
+  <path d="M252 118l24 18-24 18" fill="none" stroke="#0f766e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="292" y="46" width="154" height="170" rx="16" fill="#ffffff" stroke="#7ac8bd" stroke-width="2"/>
+  <rect x="292" y="46" width="154" height="42" rx="16" fill="#0f766e"/>
+  <path d="M292 74h154" stroke="#0f766e" stroke-width="20"/>
+  <text x="324" y="74" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">Outlook</text>
+  <path d="M316 112h98M316 139h98M316 166h70" stroke="#dedbd2" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="410" cy="178" r="28" fill="#fff6d8" stroke="#d3a936" stroke-width="2"/>
+  <path d="M410 159c-8 0-14 7-14 16v9l-5 7h38l-5-7v-9c0-9-6-16-14-16Z" fill="#a77a00"/>
+  <path d="M403 197a8 8 0 0 0 16 0" fill="none" stroke="#a77a00" stroke-width="4" stroke-linecap="round"/>
+  <text x="335" y="235" fill="#67706f" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">15 min reminder</text>
+</svg>

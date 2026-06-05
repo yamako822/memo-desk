@@ -1133,6 +1133,63 @@ time {
   padding: 0;
 }
 
+.outlook-help {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.outlook-help h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.outlook-help p {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.outlook-help-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.outlook-help figure {
+  display: grid;
+  grid-template-columns: 144px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+}
+
+.outlook-help img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  object-fit: cover;
+}
+
+.outlook-help figcaption {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.outlook-help figcaption span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .settings-dialog-panel .danger {
   padding: 9px 12px;
 }
@@ -1364,6 +1421,14 @@ time {
 
   .memo-dialog-schedule .outlook-calendar-button {
     width: 100%;
+  }
+
+  .outlook-help figure {
+    grid-template-columns: 1fr;
+  }
+
+  .outlook-help img {
+    max-width: 260px;
   }
 
   .tag-input-row {

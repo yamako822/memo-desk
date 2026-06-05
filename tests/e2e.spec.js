@@ -239,6 +239,34 @@ test.describe('Memo Desk E2E', () => {
     expect(scrollState.canScroll).toBeTruthy();
   });
 
+  test('help shows illustrated Outlook reminder instructions', async ({ page }) => {
+    await page.goto('/memo.html');
+    await page.waitForSelector('#settingsButton');
+    await page.click('#settingsButton');
+    await page.waitForSelector('#settingsDialog:not([hidden])');
+    await page.click('#helpButton');
+
+    await expect(page.locator('#outlookHelpTitle')).toHaveText('Outlookでリマインダー通知を受ける');
+    await expect(page.locator('.outlook-help figure')).toHaveCount(3);
+    await expect(page.locator('.outlook-help')).toContainText('Outlook予定に追加');
+    await expect(page.locator('.outlook-help')).toContainText('既定は15分前');
+
+    const images = await page.locator('.outlook-help img').evaluateAll((items) =>
+      items.map((img) => ({
+        complete: img.complete,
+        width: img.naturalWidth,
+        alt: img.getAttribute('alt')
+      }))
+    );
+
+    expect(images).toHaveLength(3);
+    for (const image of images) {
+      expect(image.complete).toBeTruthy();
+      expect(image.width).toBeGreaterThan(0);
+      expect(image.alt.length).toBeGreaterThan(8);
+    }
+  });
+
   test('tag filter opens dialog and filters by selected tag', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('memo-desk-local-memos', JSON.stringify([
