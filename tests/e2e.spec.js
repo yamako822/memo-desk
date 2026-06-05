@@ -304,4 +304,46 @@ test.describe('Memo Desk E2E', () => {
     expect(buttonStyle.wordBreak).toBe('keep-all');
     expect(buttonStyle.width).toBeGreaterThan(buttonStyle.height);
   });
+
+  test('uses wider desktop space while keeping mobile single column', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto('/memo.html');
+    await page.waitForSelector('.app');
+
+    const desktop = await page.evaluate(() => {
+      const app = document.querySelector('.app').getBoundingClientRect();
+      const editor = document.querySelector('.editor').getBoundingClientRect();
+      const library = document.querySelector('.library').getBoundingClientRect();
+      const gridColumns = getComputedStyle(document.querySelector('.app')).gridTemplateColumns;
+      return {
+        appWidth: app.width,
+        editorWidth: editor.width,
+        libraryWidth: library.width,
+        gridColumns
+      };
+    });
+
+    expect(desktop.appWidth).toBeGreaterThan(1320);
+    expect(desktop.libraryWidth).toBeGreaterThan(desktop.editorWidth);
+    expect(desktop.gridColumns.split(' ').length).toBeGreaterThanOrEqual(2);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await page.waitForSelector('.app');
+
+    const mobile = await page.evaluate(() => {
+      const app = document.querySelector('.app').getBoundingClientRect();
+      const gridColumns = getComputedStyle(document.querySelector('.app')).gridTemplateColumns;
+      return {
+        appWidth: app.width,
+        viewportWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        gridColumns
+      };
+    });
+
+    expect(mobile.appWidth).toBeLessThanOrEqual(mobile.viewportWidth);
+    expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.viewportWidth);
+    expect(mobile.gridColumns.split(' ').length).toBe(1);
+  });
 });
