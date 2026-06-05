@@ -13,6 +13,7 @@ const DRAFT_KEY = "memo-desk-draft";
 const CUSTOM_COLORS_KEY = "memo-desk-custom-colors";
 const LAYOUT_SETTING_KEY = "memo-desk-layout-setting";
 const LAST_OPEN_MEMO_KEY = "memo-desk-last-open-memo";
+const OUTLOOK_REMINDER_SETTING_KEY = "memo-desk-outlook-reminder-minutes";
 
 const loginScreen = document.querySelector("#loginScreen");
 const appScreen = document.querySelector("#appScreen");
@@ -71,9 +72,11 @@ const memoDialogPinButton = document.querySelector("#memoDialogPinButton");
 const memoDialogFavoriteButton = document.querySelector("#memoDialogFavoriteButton");
 const memoDialogEditButton = document.querySelector("#memoDialogEditButton");
 const memoDialogDeleteButton = document.querySelector("#memoDialogDeleteButton");
+const memoDialogOutlookButton = document.querySelector("#memoDialogOutlookButton");
 const settingsButton = document.querySelector("#settingsButton");
 const settingsDialog = document.querySelector("#settingsDialog");
 const settingsDialogCloseButton = document.querySelector("#settingsDialogCloseButton");
+const outlookReminderSelect = document.querySelector("#outlookReminderSelect");
 const autoSaveToggle = document.querySelector("#autoSaveToggle");
 const settingsClearLocalButton = document.querySelector("#settingsClearLocalButton");
 const brightnessResetButton = document.querySelector("#brightnessResetButton");
@@ -100,6 +103,10 @@ const BODY_MAX_LENGTH = 10000;
 const TAG_MAX_COUNT = 10;
 const TAG_MAX_LENGTH = 24;
 const AUTO_TAG_LIMIT = 5;
+const OUTLOOK_EVENT_DURATION_MINUTES = 30;
+const DEFAULT_OUTLOOK_REMINDER_MINUTES = 15;
+const OUTLOOK_REMINDER_OPTIONS = new Set([0, 5, 15, 30, 60, 1440]);
+const ICS_LINE_BYTE_LIMIT = 72;
 const DEFAULT_SORT_MODE = "updatedDesc";
 const SORT_MODES = new Set(["updatedDesc", "updatedAsc", "titleAsc", "titleDesc"]);
 const DEFAULT_LIGHT_COLORS = {
@@ -460,6 +467,134 @@ function getReminderState(value) {
   return date.getTime() < Date.now() ? "due" : "upcoming";
 }
 
+function readOutlookReminderMinutes() {
+  const raw = localStorage.getItem(OUTLOOK_REMINDER_SETTING_KEY);
+  if (raw === null) return DEFAULT_OUTLOOK_REMINDER_MINUTES;
+  const saved = Number(raw);
+  return OUTLOOK_REMINDER_OPTIONS.has(saved) ? saved : DEFAULT_OUTLOOK_REMINDER_MINUTES;
+}
+
+function saveOutlookReminderMinutes(minutes) {
+  localStorage.setItem(OUTLOOK_REMINDER_SETTING_KEY, String(minutes));
+}
+
+function applyOutlookReminderSetting(minutes) {
+  outlookReminderMinutes = OUTLOOK_REMINDER_OPTIONS.has(minutes)
+    ? minutes
+    : DEFAULT_OUTLOOK_REMINDER_MINUTES;
+  if (outlookReminderSelect) outlookReminderSelect.value = String(outlookReminderMinutes);
+}
+
+function formatIcsDate(date) {
+  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
+function escapeIcsText(value) {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\r\n|\r|\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function foldIcsLine(line) {
+  if (typeof TextEncoder === "undefined") return line;
+
+  const encoder = new TextEncoder();
+  const chunks = [];
+  let current = "";
+  let currentBytes = 0;
+
+  for (const char of line) {
+    const charBytes = encoder.encode(char).length;
+    if (current && currentBytes + charBytes > ICS_LINE_BYTE_LIMIT) {
+      chunks.push(current);
+      current = char;
+      currentBytes = charBytes;
+    } else {
+      current += char;
+      currentBytes += charBytes;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks.map((chunk, index) => (index === 0 ? chunk : ` ${chunk}`)).join("\r\n");
+}
+
+function formatIcsTrigger(minutes) {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "PT0M";
+  if (minutes % 1440 === 0) return `-P${minutes / 1440}D`;
+  if (minutes % 60 === 0) return `-PT${minutes / 60}H`;
+  return `-PT${minutes}M`;
+}
+
+function sanitizeFileName(value) {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 60);
+  return cleaned || "memo-reminder";
+}
+
+function buildOutlookIcs(memo) {
+  const start = toReminderDate(memo?.reminderAt);
+  if (!start) return "";
+
+  const end = new Date(start.getTime() + OUTLOOK_EVENT_DURATION_MINUTES * 60 * 1000);
+  const title = memo.title?.trim() || "Memo Desk リマインダー";
+  const description = [
+    memo.body?.trim(),
+    memo.tags?.length ? `タグ: ${memo.tags.join(", ")}` : "",
+  ].filter(Boolean).join("\n\n") || title;
+
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Memo Desk//Memo Reminder//JA",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:memo-desk-${memo.id || crypto.randomUUID()}@memo-desk.local`,
+    `DTSTAMP:${formatIcsDate(new Date())}`,
+    `DTSTART:${formatIcsDate(start)}`,
+    `DTEND:${formatIcsDate(end)}`,
+    `SUMMARY:${escapeIcsText(title)}`,
+    `DESCRIPTION:${escapeIcsText(description)}`,
+  ];
+
+  if (memo.tags?.length) {
+    lines.push(`CATEGORIES:${memo.tags.map(escapeIcsText).join(",")}`);
+  }
+
+  lines.push(
+    "BEGIN:VALARM",
+    `TRIGGER:${formatIcsTrigger(outlookReminderMinutes)}`,
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${escapeIcsText(title)}`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  );
+
+  return `${lines.map(foldIcsLine).join("\r\n")}\r\n`;
+}
+
+function downloadOutlookIcs(memo) {
+  const content = buildOutlookIcs(memo);
+  if (!content) return;
+
+  const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${sanitizeFileName(memo.title)}.ics`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function rememberOpenMemo(id) {
   if (!id || !currentUser) return;
   try {
@@ -523,6 +658,7 @@ function restoreLastOpenMemoIfNeeded() {
 let displaySettings = readDisplaySettings();
 let customColors = readCustomColors();
 let layoutSetting = readLayoutSetting();
+let outlookReminderMinutes = readOutlookReminderMinutes();
 let autoSaveIntervalId = null;
 let autoSaveDebounceTimer = null;
 let draftInputHandler = null;
@@ -1349,6 +1485,43 @@ function renderDialogReminder(memo) {
   reminder.dataset.state = getReminderState(memo.reminderAt);
 }
 
+function getOrCreateDialogOutlookButton() {
+  if (memoDialogOutlookButton) return memoDialogOutlookButton;
+  if (!memoDialog) return null;
+
+  const actions = memoDialog.querySelector(".card-actions");
+  if (!actions) return null;
+
+  const existing = actions.querySelector("#memoDialogOutlookButton");
+  if (existing) return existing;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "secondary outlook-calendar-button";
+  button.id = "memoDialogOutlookButton";
+  button.textContent = "Outlook予定に追加";
+
+  const editButton = actions.querySelector("#memoDialogEditButton");
+  if (editButton) {
+    actions.insertBefore(button, editButton);
+  } else {
+    actions.append(button);
+  }
+
+  return button;
+}
+
+function renderDialogOutlookButton(memo) {
+  const button = getOrCreateDialogOutlookButton();
+  if (!button) return;
+
+  const hasReminder = Boolean(toReminderDate(memo.reminderAt));
+  button.disabled = !hasReminder;
+  button.title = hasReminder
+    ? "通知付きのOutlook予定ファイルを作成します"
+    : "リマインダー日時を設定すると予定に追加できます";
+}
+
 function getOrCreateDialogReminder() {
   if (memoDialogReminder) return memoDialogReminder;
   if (!memoDialog) return null;
@@ -1395,6 +1568,7 @@ function updateMemoDialog(id) {
   memoDialogFavoriteButton.setAttribute("aria-pressed", String(isFavorite));
   renderDialogTags(memo);
   renderDialogReminder(memo);
+  renderDialogOutlookButton(memo);
 }
 
 function openMemoDialog(id) {
@@ -1720,6 +1894,11 @@ function bindMemoPage() {
     applyDisplaySettings();
     saveDisplaySettings();
   });
+  outlookReminderSelect?.addEventListener("change", () => {
+    const minutes = Number(outlookReminderSelect.value);
+    applyOutlookReminderSetting(minutes);
+    saveOutlookReminderMinutes(outlookReminderMinutes);
+  });
   clearButton.addEventListener("click", () => {
     clearDraft();
     clearRememberedOpenMemo();
@@ -1792,6 +1971,10 @@ function bindMemoPage() {
   });
   memoDialogPinButton.addEventListener("click", () => {
     if (openMemoId) togglePinnedMemo(openMemoId);
+  });
+  getOrCreateDialogOutlookButton()?.addEventListener("click", () => {
+    const memo = memos.find((item) => item.id === openMemoId);
+    if (memo) downloadOutlookIcs(memo);
   });
   memoDialogEditButton.addEventListener("click", () => {
     if (openMemoId) startEditing(openMemoId);
@@ -1965,6 +2148,7 @@ function bindMemoPage() {
   applyDisplaySettings();
   applyCustomColors(customColors);
   applyLayoutSetting(layoutSetting);
+  applyOutlookReminderSetting(outlookReminderMinutes);
 }
 
 if (isLoginPage) bindLoginPage();

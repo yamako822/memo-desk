@@ -494,6 +494,19 @@ button:hover {
   gap: 10px;
 }
 
+.memo-dialog-panel .card-actions {
+  flex-wrap: wrap;
+}
+
+.outlook-calendar-button {
+  white-space: nowrap;
+}
+
+.outlook-calendar-button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
 .toolbar input {
   max-width: 280px;
 }
@@ -1055,6 +1068,16 @@ time {
 .layout-settings .switch-control {
   flex: 1;
   margin: 0;
+}
+
+.outlook-reminder-setting {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.outlook-reminder-setting select {
+  width: min(220px, 100%);
 }
 
 .page-help {

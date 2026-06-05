@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
 
 test.describe('Memo Desk E2E', () => {
   test.beforeEach(async ({ page }) => {
@@ -57,6 +58,43 @@ test.describe('Memo Desk E2E', () => {
 
     const memos = JSON.parse(await page.evaluate(() => localStorage.getItem('memo-desk-local-memos') || '[]'));
     expect(memos[0].reminderAt).toContain('2026-06-05');
+  });
+
+  test('downloads Outlook calendar file with reminder alarm', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('memo-desk-local-memos', JSON.stringify([
+        {
+          id: 'outlook-reminder',
+          title: 'Outlook通知',
+          body: '予定に入れる本文',
+          tags: ['仕事'],
+          updatedAt: new Date().toISOString(),
+          favorite: false,
+          pinned: false,
+          reminderAt: '2026-06-05T09:30:00.000Z'
+        }
+      ]));
+    });
+
+    await page.goto('/memo.html');
+    await page.waitForSelector('.open-button');
+    await page.click('.open-button');
+    await page.waitForSelector('#memoDialog:not([hidden])');
+    await expect(page.locator('#memoDialogOutlookButton')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.click('#memoDialogOutlookButton');
+    const download = await downloadPromise;
+    const filePath = await download.path();
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    expect(download.suggestedFilename()).toBe('Outlook通知.ics');
+    expect(content).toContain('BEGIN:VCALENDAR');
+    expect(content).toContain('BEGIN:VEVENT');
+    expect(content).toContain('SUMMARY:Outlook通知');
+    expect(content).toContain('BEGIN:VALARM');
+    expect(content).toContain('TRIGGER:-PT15M');
+    expect(content).toContain('ACTION:DISPLAY');
   });
 
   test('auto tag fills tags from memo content', async ({ page }) => {
@@ -185,6 +223,7 @@ test.describe('Memo Desk E2E', () => {
     await expect(page.locator('#settingsDialog #feedbackButton')).toBeVisible();
     await expect(page.locator('#settingsDialog #logoutButton')).toHaveText('ログイン画面に戻る');
     await expect(page.locator('#settingsDialog #usernameForm')).toBeVisible();
+    await expect(page.locator('#outlookReminderSelect')).toHaveValue('15');
 
     const scrollState = await page.locator('.settings-dialog-body').evaluate((body) => {
       const style = getComputedStyle(body);

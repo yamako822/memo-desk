@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Memo Desk">
     <title>Memo Desk | Memos</title>
-    <link rel="manifest" href="manifest.webmanifest?v=7">
+    <link rel="manifest" href="manifest.webmanifest?v=8">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=8">
   </head>
   <body>
     <main id="appScreen" class="app" hidden>
@@ -119,6 +119,7 @@
         <div class="card-actions">
           <button type="button" class="secondary" id="memoDialogPinButton">ピン留め</button>
           <button type="button" class="secondary" id="memoDialogFavoriteButton">お気に入り</button>
+          <button type="button" class="secondary outlook-calendar-button" id="memoDialogOutlookButton" disabled title="リマインダー日時を設定すると予定に追加できます">Outlook予定に追加</button>
           <button type="button" class="secondary" id="memoDialogEditButton">編集</button>
           <button type="button" class="danger" id="memoDialogDeleteButton">削除</button>
         </div>
@@ -222,6 +223,21 @@
           </div>
 
           <div class="settings-section">
+            <h3>Outlook予定</h3>
+            <label class="outlook-reminder-setting" for="outlookReminderSelect">
+              <span>通知タイミング</span>
+              <select id="outlookReminderSelect">
+                <option value="0">予定時刻</option>
+                <option value="5">5分前</option>
+                <option value="15">15分前</option>
+                <option value="30">30分前</option>
+                <option value="60">1時間前</option>
+                <option value="1440">1日前</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-section">
             <h3>ヘルプ</h3>
             <button type="button" class="secondary icon-button" id="helpButton" title="ヘルプ" aria-label="使い方の説明" aria-expanded="false">?</button>
             <div class="page-help" id="helpPanel" hidden>
@@ -268,7 +284,7 @@
       </article>
     </div>
 
-    <script type="module" src="app.js?v=7"></script>
-    <script src="pwa.js?v=7"></script>
+    <script type="module" src="app.js?v=8"></script>
+    <script src="pwa.js?v=8"></script>
   </body>
 </html>
