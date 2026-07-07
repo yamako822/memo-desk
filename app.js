@@ -5,6 +5,8 @@ const FIREBASE_VERSION = "11.6.0";
 const LEGACY_STORAGE_KEY = "memo-desk-notes";
 const DISPLAY_SETTINGS_KEY = "memo-desk-display-settings";
 const SORT_SETTING_KEY = "memo-desk-sort-setting";
+const TRASH_SETTINGS_KEY = "memo-desk-trash-settings";
+const DEFAULT_TRASH_SETTINGS = { enabled: false, autoDeleteAfterDays: 10 };
 const LOCAL_MODE_KEY = "memo-desk-local-mode";
 const LOCAL_ENTRY_KEY = "memo-desk-local-entry";
 const LOCAL_MEMOS_KEY = "memo-desk-local-memos";
@@ -54,6 +56,10 @@ const tagFilterStatus = document.querySelector("#tagFilterStatus");
 const tagFilter = document.querySelector("#tagFilter");
 const pagination = document.querySelector("#pagination");
 const favoriteFilterButton = document.querySelector("#favoriteFilterButton");
+const trashToggleButton = document.querySelector("#trashToggleButton");
+const autoDeleteToggle = document.querySelector("#autoDeleteToggle");
+const autoDeleteDaysSelect = document.querySelector("#autoDeleteDays");
+const libraryTitle = document.querySelector("#library-title");
 const darkModeToggle = document.querySelector("#darkModeToggle");
 const brightnessInput = document.querySelector("#brightnessInput");
 const brightnessValue = document.querySelector("#brightnessValue");
@@ -192,6 +198,7 @@ let openMemoId = null;
 let currentPage = 1;
 let sortMode = readSortMode();
 let hasTriedRestoreOpenMemo = false;
+let showTrashOnly = false;
 
 function readDisplaySettings() {
   try {
@@ -678,11 +685,28 @@ let displaySettings = readDisplaySettings();
 let customColors = readCustomColors();
 let layoutSetting = readLayoutSetting();
 let outlookReminderMinutes = readOutlookReminderMinutes();
+let trashSettings = readTrashSettings();
 let autoSaveIntervalId = null;
 let autoSaveDebounceTimer = null;
 let draftInputHandler = null;
 let confirmAction = null;
 let pendingDeleteMemoId = null;
+
+function readTrashSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TRASH_SETTINGS_KEY));
+    return {
+      enabled: Boolean(saved?.enabled),
+      autoDeleteAfterDays: Number(saved?.autoDeleteAfterDays) || 10,
+    };
+  } catch {
+    return { ...DEFAULT_TRASH_SETTINGS };
+  }
+}
+
+function saveTrashSettings() {
+  localStorage.setItem(TRASH_SETTINGS_KEY, JSON.stringify(trashSettings));
+}
 
 async function loadFirebaseModules() {
   if (initializeApp) return;
@@ -815,6 +839,8 @@ function normalizeMemo(data, fallbackId = crypto.randomUUID()) {
     updatedAt: data?.updatedAt ?? new Date().toISOString(),
     favorite: Boolean(data?.favorite),
     pinned: Boolean(data?.pinned),
+    deleted: Boolean(data?.deleted),
+    deletedAt: data?.deletedAt ?? null,
   };
 }
 
@@ -926,6 +952,14 @@ function applyDisplaySettings() {
   applyCustomColors(customColors);
 }
 
+function shouldAutoDeleteMemo(memo) {
+  if (!memo.deleted || !trashSettings.enabled) return false;
+
+  const retentionDays = Number(trashSettings.autoDeleteAfterDays) || 10;
+  const deadline = new Date(memo.deletedAt || memo.updatedAt).getTime() + retentionDays * 24 * 60 * 60 * 1000;
+  return Date.now() >= deadline;
+}
+
 function stopMemoSubscription() {
   if (unsubscribeMemos) {
     unsubscribeMemos();
@@ -940,20 +974,23 @@ function startMemoSubscription(user) {
 
   unsubscribeMemos = onSnapshot(
     q,
-    (snapshot) => {
-      memos = snapshot.docs.map((document) => {
-        const data = document.data();
-        return {
-          id: document.id,
-          title: data.title ?? "",
-          body: data.body ?? "",
-          tags: Array.isArray(data.tags) ? data.tags : [],
-          reminderAt: normalizeReminderAt(data.reminderAt),
-          updatedAt: data.updatedAt ?? new Date().toISOString(),
-          favorite: Boolean(data.favorite),
-          pinned: Boolean(data.pinned),
-        };
-      });
+    async (snapshot) => {
+      const nextMemos = snapshot.docs.map((document) => normalizeMemo({ ...document.data(), id: document.id }, document.id));
+      const expiredMemos = nextMemos.filter((memo) => memo.deleted && shouldAutoDeleteMemo(memo));
+
+      if (expiredMemos.length > 0) {
+        try {
+          const batch = writeBatch(db);
+          expiredMemos.forEach((memo) => {
+            batch.delete(memoDocRef(user.uid, memo.id));
+          });
+          await batch.commit();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      memos = nextMemos.filter((memo) => !memo.deleted || !shouldAutoDeleteMemo(memo));
       setAppLoading(false);
       render();
     },
@@ -1012,6 +1049,7 @@ async function enterApp(user) {
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
+  showTrashOnly = false;
   resetOpenMemoRestore();
   resetPagination();
   searchInput.value = "";
@@ -1041,6 +1079,7 @@ function enterLocalApp() {
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
+  showTrashOnly = false;
   resetOpenMemoRestore();
   resetPagination();
   searchInput.value = "";
@@ -1061,6 +1100,7 @@ async function logout() {
   editingId = null;
   activeTag = "all";
   showFavoritesOnly = false;
+  showTrashOnly = false;
   openMemoId = null;
   resetPagination();
   if (shouldReturnToLocalStart) {
@@ -1230,17 +1270,21 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function getDisplayedMemos() {
+  return memos.filter((memo) => memo.deleted === showTrashOnly);
+}
+
 function getFilteredMemos() {
   const keyword = searchInput.value.trim().toLowerCase();
 
-  return memos.filter((memo) => {
+  return getDisplayedMemos().filter((memo) => {
     const matchesKeyword =
       memo.title.toLowerCase().includes(keyword) ||
       memo.body.toLowerCase().includes(keyword) ||
       memo.tags.some((tag) => tag.toLowerCase().includes(keyword)) ||
       formatReminderDate(memo.reminderAt).toLowerCase().includes(keyword);
     const matchesTag = activeTag === "all" || memo.tags.includes(activeTag);
-    const matchesFavorite = !showFavoritesOnly || memo.favorite;
+    const matchesFavorite = showTrashOnly || !showFavoritesOnly || memo.favorite;
     return matchesKeyword && matchesTag && matchesFavorite;
   });
 }
@@ -1251,6 +1295,18 @@ function resetPagination() {
 
 function getTotalPages(totalItems) {
   return Math.max(1, Math.ceil(totalItems / MEMOS_PER_PAGE));
+}
+
+function renderTrashView() {
+  libraryTitle.textContent = showTrashOnly ? "ゴミ箱" : "メモ一覧";
+  trashToggleButton.classList.toggle("active", showTrashOnly);
+  trashToggleButton.textContent = showTrashOnly ? "一覧へ戻る" : "ゴミ箱";
+  trashToggleButton.setAttribute("aria-pressed", String(showTrashOnly));
+  favoriteFilterButton.hidden = showTrashOnly;
+  tagFilter.hidden = showTrashOnly;
+  autoDeleteToggle.checked = Boolean(trashSettings.enabled);
+  autoDeleteDaysSelect.value = String(trashSettings.autoDeleteAfterDays || 10);
+  autoDeleteDaysSelect.disabled = !trashSettings.enabled;
 }
 
 function renderFavoriteFilter() {
@@ -1297,7 +1353,14 @@ function renderPagination(totalItems) {
 }
 
 function renderTags() {
-  const tags = [...new Set(memos.flatMap((memo) => memo.tags))].sort();
+  if (showTrashOnly) {
+    tagFilter.innerHTML = "";
+    tagFilter.hidden = true;
+    return;
+  }
+
+  tagFilter.hidden = false;
+  const tags = [...new Set(getDisplayedMemos().flatMap((memo) => memo.tags))].sort();
   if (activeTag !== "all" && !tags.includes(activeTag)) {
     activeTag = "all";
   }
@@ -1368,13 +1431,17 @@ function renderMemos() {
   const pageMemos = filteredMemos.slice(startIndex, startIndex + MEMOS_PER_PAGE);
 
   memoList.innerHTML = "";
-  memoCount.textContent = `${memos.length}件`;
+  memoCount.textContent = `${filteredMemos.length}件`;
   if (openMemoId) updateMemoDialog(openMemoId);
 
   if (pageMemos.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = appLoading.hidden === false ? "読み込み中…" : "表示できるメモがありません";
+    empty.textContent = showTrashOnly
+      ? "ゴミ箱は空です"
+      : appLoading.hidden === false
+        ? "読み込み中…"
+        : "表示できるメモがありません";
     memoList.append(empty);
     renderPagination(filteredMemos.length);
     return;
@@ -1390,9 +1457,7 @@ function renderMemos() {
     const reminder = getOrCreateCardReminder(card);
     const pinButton = item.querySelector(".pin-button");
     const favoriteButton = item.querySelector(".favorite-button");
-    const openButton = item.querySelector(".open-button");
-    const editButton = item.querySelector(".edit-button");
-    const deleteButton = item.querySelector(".delete-button");
+    const cardActions = item.querySelector(".card-actions");
     const isFavorite = Boolean(memo.favorite);
     const isPinned = Boolean(memo.pinned);
 
@@ -1422,11 +1487,45 @@ function renderMemos() {
       tags.append(tagItem);
     });
 
-    openButton.addEventListener("click", () => openMemoDialog(memo.id));
+    cardActions.innerHTML = "";
+    if (showTrashOnly) {
+      const restoreButton = document.createElement("button");
+      restoreButton.type = "button";
+      restoreButton.className = "secondary";
+      restoreButton.textContent = "復元";
+      restoreButton.addEventListener("click", () => restoreMemo(memo.id));
+
+      const permanentDeleteButton = document.createElement("button");
+      permanentDeleteButton.type = "button";
+      permanentDeleteButton.className = "danger";
+      permanentDeleteButton.textContent = "完全削除";
+      permanentDeleteButton.addEventListener("click", () => deleteMemo(memo.id, true));
+
+      cardActions.append(restoreButton, permanentDeleteButton);
+    } else {
+      const openButton = document.createElement("button");
+      openButton.type = "button";
+      openButton.className = "secondary";
+      openButton.textContent = "開く";
+      openButton.addEventListener("click", () => openMemoDialog(memo.id));
+
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "secondary";
+      editButton.textContent = "編集";
+      editButton.addEventListener("click", () => startEditing(memo.id));
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "danger";
+      deleteButton.textContent = "ゴミ箱へ";
+      deleteButton.addEventListener("click", () => deleteMemo(memo.id));
+
+      cardActions.append(openButton, editButton, deleteButton);
+    }
+
     pinButton.addEventListener("click", () => togglePinnedMemo(memo.id));
     favoriteButton.addEventListener("click", () => toggleFavoriteMemo(memo.id));
-    editButton.addEventListener("click", () => startEditing(memo.id));
-    deleteButton.addEventListener("click", () => deleteMemo(memo.id));
     card.addEventListener("dblclick", () => openMemoDialog(memo.id));
     memoList.append(card);
   });
@@ -1453,6 +1552,7 @@ function getOrCreateCardReminder(card) {
 }
 
 function render() {
+  renderTrashView();
   renderFavoriteFilter();
   renderSortControl();
   renderTags();
@@ -1706,56 +1806,21 @@ function closeMemoDialog() {
   document.body.classList.remove("dialog-open");
 }
 
-async function deleteMemo(id) {
-  const memo = memos.find((item) => item.id === id);
-  if (!memo || !currentUser) return;
-
-  if (!confirmDialog || !confirmDialogMessage) {
-    // fallback to native confirm
-    const ok = confirm(`「${memo.title}」を削除しますか？`);
-    if (!ok) return;
-    try {
-      if (dataMode === 'local') {
-        memos = memos.filter((item) => item.id !== id);
-        saveLocalMemos();
-        render();
-      } else {
-        await deleteDoc(memoDocRef(currentUser.uid, id));
-      }
-      if (openMemoId === id) closeMemoDialog();
-      if (editingId === id) resetForm();
-    } catch {
-      showFormError('削除に失敗しました。');
-    }
-    return;
-  }
-
-  // open custom confirm dialog
-  confirmDialogMessage.textContent = `「${memo.title}」を削除しますか？`;
-  confirmAction = async () => {
-    try {
-      if (dataMode === 'local') {
-        memos = memos.filter((item) => item.id !== id);
-        saveLocalMemos();
-        render();
-      } else {
-        await deleteDoc(memoDocRef(currentUser.uid, id));
-      }
-      if (openMemoId === id) closeMemoDialog();
-      if (editingId === id) resetForm();
-    } catch (e) {
-      console.error(e);
-      showFormError('削除に失敗しました。');
-    }
-  };
-  pendingDeleteMemoId = id;
-  confirmDialog.hidden = false;
-  document.body.classList.add('dialog-open');
-  confirmCancel?.focus();
-}
-
-async function saveMemo(memo) {
+async function persistMemo(memo) {
   if (!currentUser) return;
+
+  const memoPayload = {
+    title: memo.title,
+    body: memo.body,
+    tags: memo.tags,
+    reminderAt: normalizeReminderAt(memo.reminderAt),
+    updatedAt: memo.updatedAt,
+    favorite: memo.favorite,
+    pinned: memo.pinned,
+    deleted: Boolean(memo.deleted),
+    deletedAt: memo.deletedAt ?? null,
+  };
+
   if (dataMode === "local") {
     const index = memos.findIndex((item) => item.id === memo.id);
     if (index >= 0) {
@@ -1769,15 +1834,82 @@ async function saveMemo(memo) {
     return;
   }
 
-  await setDoc(memoDocRef(currentUser.uid, memo.id), {
-    title: memo.title,
-    body: memo.body,
-    tags: memo.tags,
-    reminderAt: normalizeReminderAt(memo.reminderAt),
-    updatedAt: memo.updatedAt,
-    favorite: memo.favorite,
-    pinned: memo.pinned,
-  });
+  await setDoc(memoDocRef(currentUser.uid, memo.id), memoPayload);
+}
+
+async function restoreMemo(id) {
+  const memo = memos.find((item) => item.id === id);
+  if (!memo || !currentUser) return;
+
+  try {
+    await persistMemo({
+      ...memo,
+      deleted: false,
+      deletedAt: null,
+      updatedAt: new Date().toISOString(),
+    });
+    if (openMemoId === id) closeMemoDialog();
+    if (editingId === id) resetForm();
+  } catch {
+    showFormError("復元に失敗しました。");
+  }
+}
+
+async function deleteMemo(id, permanent = false) {
+  const memo = memos.find((item) => item.id === id);
+  if (!memo || !currentUser) return;
+
+  const isTrashed = Boolean(memo.deleted);
+  const ok = confirm(
+    permanent || isTrashed
+      ? `「${memo.title || "無題"}」を完全に削除しますか？`
+      : `「${memo.title || "無題"}」をゴミ箱に移動しますか？`,
+  );
+  if (!ok) return;
+
+  try {
+    if (dataMode === "local") {
+      if (permanent || isTrashed) {
+        memos = memos.filter((item) => item.id !== id);
+      } else {
+        memos = memos.map((item) =>
+          item.id === id
+            ? { ...item, deleted: true, deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+            : item,
+        );
+      }
+      saveLocalMemos();
+      render();
+    } else if (permanent || isTrashed) {
+      await deleteDoc(memoDocRef(currentUser.uid, id));
+    } else {
+      await setDoc(
+        memoDocRef(currentUser.uid, id),
+        {
+          deleted: true,
+          deletedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
+    }
+    if (openMemoId === id) closeMemoDialog();
+    if (editingId === id) resetForm();
+  } catch {
+    showFormError(permanent || isTrashed ? "完全削除に失敗しました。" : "ゴミ箱への移動に失敗しました。);
+  }
+}
+
+async function saveMemo(memo) {
+  if (!currentUser) return;
+
+  const normalizedMemo = {
+    ...memo,
+    deleted: Boolean(memo.deleted),
+    deletedAt: memo.deletedAt ?? null,
+  };
+
+  await persistMemo(normalizedMemo);
 }
 
 function memoWriteData(memo, changes = {}) {
@@ -1998,6 +2130,21 @@ function bindMemoPage() {
   tagFilterDialogCloseButton?.addEventListener("click", closeTagFilterDialog);
   tagFilterDialog?.addEventListener("click", (event) => {
     if (event.target === tagFilterDialog) closeTagFilterDialog();
+  });
+  trashToggleButton.addEventListener("click", () => {
+    showTrashOnly = !showTrashOnly;
+    resetPagination();
+    render();
+  });
+  autoDeleteToggle.addEventListener("change", () => {
+    trashSettings.enabled = autoDeleteToggle.checked;
+    saveTrashSettings();
+    render();
+  });
+  autoDeleteDaysSelect.addEventListener("change", () => {
+    trashSettings.autoDeleteAfterDays = Number(autoDeleteDaysSelect.value) || 10;
+    saveTrashSettings();
+    render();
   });
   darkModeToggle.addEventListener("change", () => {
     displaySettings.dark = darkModeToggle.checked;
