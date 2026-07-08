@@ -1892,6 +1892,16 @@ async function initFirebase() {
       return;
     }
 
+    // ローカルモードが有効な場合は、ローカルアプリを開く
+    if (isLocalModeEnabled()) {
+      if (isMemoPage) {
+        enterLocalApp();
+      } else {
+        goToMemos();
+      }
+      return;
+    }
+
     if (isMemoPage) {
       goToLogin();
     } else {
