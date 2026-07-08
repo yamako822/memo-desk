@@ -532,7 +532,8 @@ button:hover {
   scrollbar-width: thin;
 }
 
-.favorite-filter-button.active {
+.favorite-filter-button.active,
+#trashToggleButton.active {
   background: var(--soft-strong);
   border-color: var(--accent-line);
   color: var(--accent-dark);
@@ -564,6 +565,19 @@ button:hover {
   background: var(--card-bg);
 }
 
+.trash-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
 .switch-control,
 .brightness-control {
   display: inline-flex;
@@ -585,6 +599,15 @@ button:hover {
 #brightnessInput {
   padding: 0;
   accent-color: var(--accent);
+}
+
+#autoDeleteDays {
+  min-width: 88px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--text);
 }
 
 .tag-filter-dialog-backdrop {
@@ -1554,5 +1577,10 @@ time {
   .memo-list.list-view .card-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .trash-settings {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

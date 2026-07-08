@@ -74,6 +74,24 @@
 
         <!-- 表示設定は設定ポップアップ内に移動しました -->
 
+        <div class="trash-settings" aria-label="ゴミ箱設定">
+          <button type="button" class="secondary" id="trashToggleButton" aria-pressed="false">ゴミ箱</button>
+          <label class="switch-control">
+            <input id="autoDeleteToggle" type="checkbox">
+            <span>ゴミ箱のメモを自動削除</span>
+          </label>
+          <label class="brightness-control" for="autoDeleteDays">
+            <span>保持日数</span>
+            <select id="autoDeleteDays">
+              <option value="3">3日</option>
+              <option value="7">7日</option>
+              <option value="10" selected>10日</option>
+              <option value="30">30日</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="tag-filter" id="tagFilter" aria-label="タグで絞り込み"></div>
         <div class="memo-list" id="memoList"></div>
         <nav class="pagination" id="pagination" aria-label="メモ一覧のページ送り"></nav>
       </section>
