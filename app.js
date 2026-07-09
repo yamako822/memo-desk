@@ -1505,19 +1505,19 @@ function renderMemos() {
     } else {
       const openButton = document.createElement("button");
       openButton.type = "button";
-      openButton.className = "secondary";
+      openButton.className = "secondary open-button";
       openButton.textContent = "開く";
       openButton.addEventListener("click", () => openMemoDialog(memo.id));
 
       const editButton = document.createElement("button");
       editButton.type = "button";
-      editButton.className = "secondary";
+      editButton.className = "secondary edit-button";
       editButton.textContent = "編集";
       editButton.addEventListener("click", () => startEditing(memo.id));
 
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
-      deleteButton.className = "danger";
+      deleteButton.className = "danger delete-button";
       deleteButton.textContent = "ゴミ箱へ";
       deleteButton.addEventListener("click", () => deleteMemo(memo.id));
 
@@ -1896,7 +1896,7 @@ async function deleteMemo(id, permanent = false) {
     if (openMemoId === id) closeMemoDialog();
     if (editingId === id) resetForm();
   } catch {
-    showFormError(permanent || isTrashed ? "完全削除に失敗しました。" : "ゴミ箱への移動に失敗しました。);
+    showFormError(permanent || isTrashed ? "完全削除に失敗しました。" : "ゴミ箱への移動に失敗しました。");
   }
 }
 

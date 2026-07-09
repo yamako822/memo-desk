@@ -627,6 +627,8 @@ button:hover {
 }
 
 .tag-filter-dialog-panel {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;

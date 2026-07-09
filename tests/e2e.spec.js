@@ -27,6 +27,24 @@ test.describe('Memo Desk E2E', () => {
     });
   });
 
+  test('opens local memo app from login page without signing in', async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('memo-desk-login-entry-test')) {
+        localStorage.removeItem('memo-desk-local-mode');
+        sessionStorage.setItem('memo-desk-login-entry-test', 'true');
+      }
+    });
+
+    await page.goto('/index.html');
+    await page.waitForSelector('#localModeButton');
+    await page.click('#localModeButton');
+
+    await expect(page).toHaveURL(/\/memo\.html$/);
+    await page.waitForSelector('#memoTitle');
+    await expect(page.locator('#userGreeting')).toHaveText('ローカルさん');
+    await expect(page.locator('#logoutButton')).toHaveText('モード選択へ');
+  });
+
   test('autosave creates draft in localStorage', async ({ page }) => {
     await page.goto('/memo.html');
     await page.waitForSelector('#memoTitle');
@@ -54,14 +72,14 @@ test.describe('Memo Desk E2E', () => {
 
     await page.goto('/memo.html');
     await page.waitForSelector('.delete-button');
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toContain('ゴミ箱に移動しますか');
+      await dialog.accept();
+    });
     await page.click('.delete-button');
-    // confirm dialog should appear
-    await page.waitForSelector('#confirmDialog:not([hidden])');
-    // click confirm
-    await page.click('#confirmOk');
     await page.waitForTimeout(300);
     const memos = JSON.parse(await page.evaluate(() => localStorage.getItem('memo-desk-local-memos') || '[]'));
-    expect(memos.length).toBe(0);
+    expect(memos[0].deleted).toBe(true);
   });
 
   test('saves reminder and shows it on memo card', async ({ page }) => {
